@@ -1,0 +1,369 @@
+<html>
+	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+		<title>Integrating - Rating Poster Database</title>
+		<meta name="description" content="Integrating Rating Poster Images (posters / backgrounds) in Plex, Emby, Kodi, Stremio and many more.">
+		<meta name="keywords" content="plug-ins, add-ons, addons, integrating, integrations, plex, emby, kodi, stremio, rpdb, rating poster db, rating poster database">
+		<style>
+			@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap');
+			html {
+				padding: 0;
+				margin: 0;
+			}
+			body {
+				padding: 0;
+				margin: 0;
+				font-family: 'Lato', sans-serif;
+			    letter-spacing: 1px;
+			}
+			img {
+				margin: 0;
+				padding: 0;
+			}
+			#logo {
+				max-height: 50px;
+			    position: relative;
+			    top: 50%;
+			    transform: translateY(-50%);
+			}
+			.header {
+				height: 80px;
+				white-space: nowrap;
+    			margin: 1em 0;
+			}
+			span.menu-space {
+				display: inline-block;
+				width: 20px;
+			}
+			div#content {
+				padding: 64px 15%;
+				background-color: #3d4148;
+				color: white;
+			}
+			h1 {
+			    margin: 0;
+			    padding: 0;
+			    font-size: 23px;
+			}
+			div.poster-holder {
+				height: 435px;
+				float: right;
+			}
+			img.posters {
+			    max-height: 435px;
+			}
+			div.primary-button {
+				padding: 11px 22px;
+				border-radius: 3px;
+				background-color: #f7831a;
+				display: inline-block;
+				font-size: 19px;
+				font-weight: bold;
+				color: white;
+			}
+			div.secondary-button {
+				padding: 11px 22px;
+				border-radius: 3px;
+				background-color: #239234;
+				display: inline-block;
+				font-size: 19px;
+				font-weight: bold;
+				color: white;
+			}
+			a.clear-link {
+				text-decoration: none;
+			}
+			div.space-between-tabs {
+				height: 50px;
+			}
+			h2 {
+				font-size: 23px;
+			    margin-bottom: 32px;
+			}
+			a.green-links {
+				text-decoration: none;
+				color: #18b42c;
+				font-weight: bold;
+			}
+			a.green-links:hover {
+				text-decoration: underline;
+			}
+			div#sponsors {
+				padding: 17px 21px;
+				border: 2px solid #fff;
+				display: inline-block;
+			    font-size: 17px;
+			    font-weight: bold;
+			    max-width: 70%;
+			}
+			div#screenshot-buttons {
+				border: 2px solid #fff;
+				display: inline-block;
+				font-size: 18px;
+				font-weight: bold;
+			}
+			div#screenshot-buttons div {
+				padding: 17px 21px;
+				display: inline-block;
+				cursor: pointer;
+			}
+			div#screenshot-buttons div:hover {
+				background-color: rgba(35,146,52,0.4);
+			}
+			div#screenshot-buttons div.selected {
+				background-color: #239234;
+			}
+			div#screenshot-buttons div.selected:hover {
+				background-color: #239234;
+			}
+			h3 {
+				opacity: 0.7;
+			    margin-bottom: 30px;
+			}
+			a.screenshot-link {
+				text-decoration: none;
+				border: none;
+				margin: 0;
+				padding: 0;
+			}
+			img.screenshot-vert {
+				max-width: 48%;
+			}
+			div.screenshot-vert-space {
+				width: 3%;
+				display: inline-block;
+			}
+			img.screenshot-horiz {
+				max-width: 100%;
+			}
+			div.screenshot-horiz-space {
+				height: 30px;
+				display: block;
+			}
+			div.screenshots-tab {
+				display: none;
+			}
+			div.screenshots-selected {
+				display: block !important;
+			}
+			div.main-description {
+				display: inline-block;
+				width: 38%;
+				font-weight: bold;
+				line-height: 23px;
+				font-size: 16px;
+			}
+			div#header {
+				padding: 0 15%;
+			}
+			span#navigation {
+				position: relative;
+				float: right; top: 50%;
+				transform: translateY(-50%);
+				font-weight: bold;
+				font-size: 18px;
+				color: #3b3b3b
+			}
+			div.posters-space {
+				display: inline-block;
+				width: 25px
+			}
+			img.posters-tier {
+				max-width: 30%;
+			}
+			img.background-tier {
+				max-width: 90%;
+			}
+			div.poster-tier-space {
+				display: inline-block;
+				width: 1%
+			}
+			a.header-buttons {
+				font-weight: bold;
+				font-size: 18px;
+				color: #3b3b3b;
+				text-decoration: none;
+			}
+			a.header-buttons:hover {
+				color: #000;
+			}
+			div#footer {
+				background-color: rgba(61,65,72,0.9);
+				color: white;
+				padding: 20px 0;
+				text-align: center;
+			}
+			div#footer a.footer-button {
+				padding: 10px 12px;
+				text-decoration: none;
+				color: rgba(255,255,255,0.6);
+			}
+			div#footer a.footer-button:hover {
+				text-decoration: underline;
+			}
+			span.code-block {
+				background-color: rgba(0,0,0,0.3);
+				padding: 7px 9px;
+				border-radius: 5px;
+			}
+			.no-select {
+				-webkit-user-select: none;     
+				-moz-user-select: none;
+				-ms-user-select: none;
+				user-select: none;
+			}
+			@media (max-width: 1588px) {
+				div.poster-holder {
+					float: none;
+					text-align: center;
+				}
+				h1 {
+					text-align: center;
+				}
+				h1.primary-h1 {
+					margin-top: 40px;
+				}
+				div.main-description {
+					width: 100%;
+					text-align: center;
+				}
+				div.main-button-holder {
+					text-align: center;
+				}
+			}
+			@media (max-width: 1185px) {
+				div.screenshot-vert-space {
+					width: 2%;
+				}
+			}
+			@media (max-width: 1170px) {
+				div#header {
+				    height: 117px;
+				}
+				a#logo-link {
+					display: block;
+					text-align: center;
+					height: 50px;
+					margin-top: 30px;
+				}
+				span#navigation {
+					float: none;
+					display: block;
+					text-align: center;
+					margin-bottom: 30px;
+				}
+				img.posters-tier {
+					max-width: 90%;
+				}
+				div.poster-tier-space {
+					display: block;
+					height: 30px;
+				}
+			}
+			@media (max-width: 910px) {
+				div.posters-space {
+					display: none;
+				}
+				img.second-poster {
+					display: none;
+				}
+			}
+			@media (max-width: 825px) {
+				div#header {
+					height: 157px;
+					padding: 0;
+				}
+				div.header {
+					height: 110px;
+					line-height: 33px;
+				}
+				span.nav-split-lines {
+					display: block;
+				}
+			}
+			@media (max-width: 720px) {
+				div#screenshot-buttons {
+					border: none;
+				}
+				div#screenshot-buttons div {
+					background-color: rgba(35,146,52,0.1);
+				}
+			}
+			@media (max-width: 640px) {
+				span#space-footer-buttons {
+					display: block;
+					padding: 20px 0;
+				}
+			}
+			@media (max-width: 600px) {
+				div.screenshot-vert-space {
+					width: 1%;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div id="header">
+			<div class="header">
+				<a href="/" id="logo-link">
+					<img src="../static/logo.jpg" id="logo">
+				</a>
+				<span id="navigation" class="no-select">
+					<a href="/" class="header-buttons">Home</a>
+					<span class="menu-space"></span>
+					<a href="/examples" class="header-buttons">Examples</a>
+					<span class="menu-space"></span>
+					<a href="/plugins" class="header-buttons">Plugins</a>
+					<span class="menu-space nav-split-lines"></span>
+					<a href="/api-key" class="header-buttons">API Key</a>
+					<span class="menu-space"></span>
+					<a href="https://rpdb.docs.apiary.io/" target="_blank" class="header-buttons">Developers</a>
+					<span class="menu-space"></span>
+					<a href="/login" class="header-buttons">Login</a>
+				</span>
+			</div>
+		</div>
+		<div id="content">
+			<center>
+				<h1>RPDB Integrations</h1>
+				<div class="space-between-tabs"></div>
+				This page describes the many ways in which RPDB can be used in combination with various apps: Plex, Emby, Jellyfin, Kodi, Stremio and more.
+				<div class="space-between-tabs"></div>
+				<h3>Plex</h3>
+				Plex can currently use RPDB posters through the <a href="https://github.com/jaruba/rpdb-folders/blob/main/README.md" target="_blank" class="green-links">RPDB Folders</a> app or the <a href="https://github.com/jaruba/RPDB-Media-Agent.bundle/blob/main/README.md" target="_blank" class="green-links">RPDB Media Agent</a>.
+				<div class="space-between-tabs"></div>
+				<h3>Emby</h3>
+				Emby can currently use RPDB posters through the <a href="https://github.com/jaruba/rpdb-folders/blob/main/README.md" target="_blank" class="green-links">RPDB Folders</a> app or the <a href="https://github.com/jaruba/RPDB-Emby-Plugin" target="_blank" class="green-links">Emby Plugin</a>.
+				<div class="space-between-tabs"></div>
+				<h3>Jellyfin</h3>
+				Jellyfin can currently use RPDB posters through the <a href="https://github.com/jaruba/rpdb-folders/blob/main/README.md" target="_blank" class="green-links">RPDB Folders</a> app or the <a href="https://github.com/jaruba/Jellyfin.Plugin.RPDB" target="_blank" class="green-links">Jellyfin Plugin</a>.
+				<div class="space-between-tabs"></div>
+				<h3>Kodi</h3>
+				Kodi can currently use RPDB posters (only for local media) through the <a href="https://github.com/jaruba/rpdb-folders/blob/main/README.md" target="_blank" class="green-links">RPDB Folders</a> app.
+				<div class="space-between-tabs"></div>
+				<h3>Stremio</h3>
+				Stremio can currently use RPDB posters through the following addons: <a href="https://1fe84bc728af-rpdb.baby-beamup.club/configure" target="_blank" class="green-links">RPDB Catalogs</a>, <a href="https://1fe84bc728af-imdb-catalogs.baby-beamup.club/configure" target="_blank" class="green-links">IMDB Catalogs</a>, <a href="https://1fe84bc728af-stremio-anime-catalogs.baby-beamup.club/configure" target="_blank" class="green-links">Anime Catalogs</a>, <a href="https://94c8cb9f702d-tmdb-addon.baby-beamup.club/configure" target="_blank" class="green-links">The Movie Database Addon</a> and <a href="https://rt.baby-supernode.xyz/configure" target="_blank" class="green-links">Rotten Tomatoes Catalogs</a>.<br/><br/>
+				There is also a way to replace all posters of the Stremio Desktop app by starting Stremio with the following command line argument:<br/><br/><span class="code-block">--webui-url="https://stremio.ratingposterdb.com/shell/"</span><br/><br/>(<a href="https://www.youtube.com/watch?v=XPMflQZTcDg" target="_blank" class="green-links">see demo</a>)
+				<div class="space-between-tabs"></div>
+				<h3>Web Panel</h3>
+				The RPDB Web Panel can be used to edit and download posters and backdrops online through our website. You can access the Web Panel by going to <a href="https://ratingposterdb.com/panel/" target="_blank" class="green-links">this link</a>.
+				<div class="space-between-tabs"></div><br/><br/>
+				<a class="clear-link" href="https://patreon.com/rpdb" target="_blank"><div class="primary-button">Subscribe Now</div></a><span id="space-footer-buttons">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>or</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span><a class="clear-link" href="/examples"><div class="secondary-button">Find Out More</div></a>
+			</center>
+		</div>
+		<div id="footer">
+			<a href="/examples" class="footer-button">Examples</a><a href="/api-key" class="footer-button">API Key</a><a href="/legal" class="footer-button">Legal</a><a href="" class="footer-button contact-button">Contact</a>
+		</div>
+		<script>
+			$(document).ready(function() {
+				var mailer = 'mailto:' + atob("Y29udGFjdEByYXRpbmdwb3N0ZXJkYi5jb20=") + '?subject=RPDB%20Contact'
+				$('.contact-button').attr('href', mailer)
+				$('.contact-button').click(function(e) {
+					e.preventDefault()
+					window.location.href = mailer
+				})
+			})
+		</script>
+	</body>
+</html>

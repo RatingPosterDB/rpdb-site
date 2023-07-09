@@ -1,0 +1,2944 @@
+<html>
+    <head>
+        <title>RPDB Web Panel</title>
+        <meta name="description" content="Rating Poster DB (RPDB) Web Panel for users. Edit and Download Posters and Backdrops with Ratings.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <script src="jquery-3.5.1.js"></script>
+        <link rel="stylesheet" href="pure-2.0.5.css">
+        <style>
+            body {
+                padding: 0 5%;
+            }
+            img {
+                border: none;
+                padding: none;
+            }
+            a {
+                text-decoration: none;
+                color: #0078e7;
+            }
+            a:hover {
+                text-decoration: underline;
+            }
+            .full-page-dialog {
+                width: 100%;
+                height: 100%;
+                z-index: 10;
+                top: 0;
+                left: 0;
+                position: fixed;
+                overflow: scroll;
+                background-color: #fff;
+                z-index: 1000;
+            }
+            .current-folder {
+                display: inline-block;
+                padding: 15px;
+                border: 1px solid rgba(0,0,0,0.3);
+                max-width: 80%;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+/*                direction: rtl; */
+                text-align: left;
+                margin-bottom: 20px;
+                cursor: pointer;
+            }
+            .current-folder:hover {
+                border: 1px solid rgba(0,120,231,0.3);
+            }
+            .dialog-title {
+                text-align: center;
+                font-size: 20px;
+                margin: 30px 0;
+            }
+            .folder-list {
+                width: 80%;
+            }
+            .folder-list .folder-line {
+                padding: 15px;
+                border-bottom: 1px solid rgba(0,0,0,0.3);
+                width: calc(100% - 30px);
+                cursor: pointer;
+                text-align: left;
+            }
+            .folder-list .folder-line:hover {
+                background-color: rgba(0,0,0,0.1);
+            }
+            .search-list {
+                width: 80%;
+            }
+            .search-list .folder-line {
+                padding: 15px;
+                border-bottom: 1px solid rgba(0,0,0,0.3);
+                width: calc(100% - 30px);
+                cursor: pointer;
+                text-align: left;
+            }
+            .search-list .folder-line:hover {
+                background-color: rgba(0,0,0,0.1);
+            }
+            .poster-choice-img {
+                margin: 10px;
+                padding: 10px;
+                border: 1px solid rgba(0,0,0,0.5);
+                cursor: pointer;
+            }
+            .poster-choice-img:hover {
+                border: 1px solid #0078e7;
+            }
+            #folder-poster-edit-img {
+                width: 290px;
+                height: 429px;
+                max-width: 80%;
+                background-color: rgba(0,0,0,0.1);
+            }
+            #preview-poster-img {
+                width: 290px;
+                height: 429px;
+                max-width: 80%;
+                background-color: rgba(0,0,0,0.1);
+            }
+            #preview-create-poster-img {
+                width: 290px;
+                height: 429px;
+                max-width: 80%;
+                background-color: rgba(0,0,0,0.1);
+            }
+            .unselectable {
+                -webkit-user-select: none;        
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
+            }
+        </style>
+    </head>
+    <body>
+        <center>
+            <img src='rpdb-web-panel.jpg' style="max-width: 160px; padding-top: 10px" />
+            <div id="top-links" style="display: none">
+                <div style="padding: 5px 15px; padding-bottom: 3px">
+                    The Web Panel can be used to find, edit and download posters based on IMDB / TMDB URLs or IDs.
+                </div>
+                <br/><br/>
+                <a href="https://ratingposterdb.com/#see-it-in-action" target="_blank">See Screenshots</a>&nbsp;&nbsp;&middot;&nbsp;&nbsp;<a href="https://ratingposterdb.com/api-key" target="_blank">Get API Key</a>
+                <br/><br/>
+            </div>
+            <div>
+                <form class="pure-form pure-form-aligned" id="api-key-form" onsubmit="return set_api_key()" style="display: none">
+                    <fieldset>
+                        <div class="pure-control-group">
+                            <input type="text" id="api-key" placeholder="API Key" />
+                            <span class="pure-form-message-inline">
+                                &nbsp;<button type="submit" class="pure-button pure-button-primary">Load</button>
+                            </span>
+                            <br/><br/>
+                            <label for="remember-me" class="pure-checkbox unselectable" style="display: inline-block; opacity: 0.7">
+                                <input type="checkbox" id="remember-me" class="optionsCheckbox" value="remember" />&nbsp;&nbsp;Remember Me</label>
+                        </div>
+                    </fieldset>
+                </form>
+                <div id="api-key-success" style="display: none; opacity: 0.7">
+                    <b id="api-key-success-msg"></b>
+                    <br/><br/>
+                    <button type="button" class="pure-button pure-button-primary" id="change-api-key">Change API Key</button>
+                    <br/><br/><br/>
+                </div>
+                <div id="api-key-error-1" style="display: none; opacity: 0.7">
+                    Error: Using an API key is mandatory.
+                    <br/><br/><br/>
+                </div>
+                <div id="api-key-error-2" style="display: none; opacity: 0.7">
+                    Error: API key is not valid, please try again.
+                    <br/><br/><br/>
+                </div>
+            </div>
+            <div id="opts-holder" style="display: none">
+                <div id="update-check" style="display: none; border: 1px solid rgba(0,0,0,0.3); padding: 20px; margin-bottom: 35px; font-weight: bold"></div>
+                <form class="pure-form pure-form-aligned" id="adv-opts-form">
+                    <div id="adv-form">
+                        <button type="button" class="pure-button" onclick="openPosterSettings()">Poster Settings</button>
+                        <br/><br/><br/>
+                        <button type="button" class="pure-button" onclick="openCheckRequests()">Check Requests</button>
+                        <br/><br/><br/>
+                        <button type="button" class="pure-button pure-button-primary" onclick="openChooseFolderTypes('movie')">Movie Poster</button>
+                        &nbsp;&nbsp;&nbsp;
+                        <button type="button" class="pure-button pure-button-primary" onclick="openChooseFolderTypes('series')">Series Poster</button>
+                        <br/><br/><br/>
+                        <div id="backdrop-opts" style="display: none">
+                            <button type="button" class="pure-button pure-button-primary" onclick="openChooseBackdropTypes('movie')">Movie Backdrop</button>
+                            &nbsp;&nbsp;&nbsp;
+                            <button type="button" class="pure-button pure-button-primary" onclick="openChooseBackdropTypes('series')">Series Backdrop</button>
+                            <br/><br/>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <br/><br/>
+        </center>
+        <div id="check-requests" class="full-page-dialog" style="display: none">
+            <h1 class="dialog-title">Check Requests</h1>
+            <div style="text-align: center">
+                <div id="request-count"></div>
+                <br/><br/>
+                <button type="button" class="pure-button" onclick="closeCheckRequests()">Close</button>
+                <br/><br/><br/>
+
+            </div>
+        </div>
+        <div id="folder-poster-edit" class="full-page-dialog" style="display: none">
+            <h1 class="dialog-title">Poster Edit</h1>
+            <div style="text-align: center">
+                <img id="folder-poster-edit-img" src="" onerror="if (this.src && !this.src.endsWith('/')) { this.src='missing-poster.png' }">
+                <br/><br/><br/>
+                <a href="" target="_blank" download="tt" id="download-poster-button">
+                    <button type="button" class="pure-button pure-button-primary">Download Poster</button>
+                </a>
+                <br/><br/>
+                <button type="button" class="pure-button" onclick="openChoosePoster()">Choose Poster</button>
+                &nbsp;&nbsp;&nbsp;
+                <button type="button" class="pure-button" onclick="openCustomPoster()">Custom Poster</button>
+                <br/><br/>
+                <button type="button" class="pure-button open-add-badges-button" onclick="openAddBadges()">Add Badges / Label</button>
+                <br/><br/>
+                <button type="button" class="pure-button" onclick="openCreatePoster()">Create Poster</button>
+                <br/>
+                <div id="update-ratings-poster-msg" style="display: none; opacity: 0.7"></div>
+                <br/>
+                <button type="button" class="pure-button" onclick="backToSearch()">Back</button>
+                &nbsp;&nbsp;&nbsp;
+                <button type="button" class="pure-button" onclick="closeFolderPosterEdit()">Close</button>
+                <br/><br/><br/><br/>
+            </div>
+        </div>
+        <div id="custom-poster" class="full-page-dialog" style="display: none">
+            <h1 class="dialog-title">Custom Poster</h1>
+            <div id="custom-poster-allowed" style="text-align: center">
+                <form class="pure-form">
+                    <input type="text" id="custom-poster-input" placeholder="Image URL" />
+                </form>
+                <button type="button" class="pure-button pure-button-primary" onclick="loadCustomPoster()">Load Poster Image</button>
+                &nbsp;&nbsp;&nbsp;
+                <button type="button" class="pure-button" onclick="closeCustomPoster()">Close</button>
+                <br/><br/><br/>
+            </div>
+            <div id="custom-poster-disallowed" style="display: none; text-align: center">
+                Tier 3 (or higher) is required to set custom posters.
+                <br/><br/>
+                <button type="button" class="pure-button" onclick="closeCustomPoster()">Close</button>
+            </div>
+            <br/><br/><br/>
+        </div>
+        <div id="choose-poster" class="full-page-dialog" style="display: none">
+            <h1 class="dialog-title">Choose Poster</h1>
+            <div id="poster-lang-allowed" style="text-align: center">
+                <form class="pure-form">
+                    <label for="choose-poster-lang">Poster Language&nbsp;</label>
+                    <select id="choose-poster-lang">
+                    </select>
+                </form>
+                <button type="button" class="pure-button pure-button-primary" onclick="loadPostersForLang()">Load Posters</button>
+                &nbsp;&nbsp;&nbsp;
+                <button type="button" class="pure-button" onclick="closeChoosePoster()">Close</button>
+                <br/><br/>
+                <div id="poster-choices">
+                </div>
+            </div>
+            <div id="poster-lang-disallowed" style="display: none; text-align: center">
+                Tier 2 (or higher) is required to choose alternative posters.
+                <br/><br/>
+                <button type="button" class="pure-button" onclick="closeChoosePoster()">Close</button>
+            </div>
+            <br/><br/><br/>
+        </div>
+        <div id="choose-folder-by-imdb" class="full-page-dialog" style="display: none">
+            <h1 class="dialog-title">Select Poster by IMDB ID</h1>
+            <div style="text-align: center">
+                <button type="button" class="pure-button" onclick="closeChooseFolderByImdb()">Close</button>
+                <br/><br/><br/><br/>
+                <form class="pure-form pure-form-aligned" id="choose-imdb-match-form" onsubmit="return editPosterByImdb()">
+                    <input type="text" id="choose-imdb-url" placeholder="IMDB URL or IMDB ID" />
+                </form>
+                <br/>
+                <button type="button" class="pure-button pure-button-primary" onclick="editPosterByImdb()">Select Poster</button>
+                <br/><br/><br/>
+                <div class="choose-imdb-error-message" style="display: none; color: red"></div>
+                <br/><br/>
+            </div>
+        </div>
+        <div id="choose-folder-by-tmdb" class="full-page-dialog" style="display: none">
+            <h1 class="dialog-title">Select Poster by TMDB ID</h1>
+            <div style="text-align: center">
+                <button type="button" class="pure-button" onclick="closeChooseFolderByTmdb()">Close</button>
+                <br/><br/><br/><br/>
+                <form class="pure-form pure-form-aligned" id="choose-tmdb-match-form" onsubmit="return editPosterByTmdb()">
+                    <input type="text" id="choose-tmdb-url" placeholder="TMDB URL or TMDB ID" />
+                </form>
+                <br/>
+                <button type="button" class="pure-button pure-button-primary" onclick="editPosterByTmdb()">Select Poster</button>
+                <br/><br/><br/>
+                <div class="choose-tmdb-error-message" style="display: none; color: red"></div>
+                <br/><br/>
+            </div>
+        </div>
+        <div id="choose-folder-types" class="full-page-dialog" style="display: none">
+            <h1 class="dialog-title">How would you like to select the poster?</h1>
+            <div style="text-align: center">
+                <br/>
+                <button type="button" class="pure-button pure-button-primary" onclick="openChooseFolderByImdb()">By IMDB URL or ID</button>
+                <br/><br/><br/>
+                <button type="button" class="pure-button pure-button-primary" onclick="openChooseFolderByTmdb()">By TMDB URL or ID</button>
+                <br/><br/><br/>
+                <button type="button" class="pure-button" onclick="closeChooseFolderTypes()">Close</button>
+                <br/><br/><br/>
+            </div>
+        </div>
+        <div id="choose-backdrop-by-imdb" class="full-page-dialog" style="display: none">
+            <h1 class="dialog-title">Select Backdrop by IMDB ID</h1>
+            <div style="text-align: center">
+                <button type="button" class="pure-button" onclick="closeChooseBackdropByImdb()">Close</button>
+                <br/><br/><br/><br/>
+                <form class="pure-form pure-form-aligned" id="choose-imdb-backdrop-match-form" onsubmit="return editBackdropByImdb()">
+                    <input type="text" id="choose-imdb-backdrop-url" placeholder="IMDB URL or IMDB ID" />
+                </form>
+                <br/>
+                <button type="button" class="pure-button pure-button-primary" onclick="editBackdropByImdb()">Select Backdrop</button>
+                <br/><br/><br/>
+                <div class="choose-imdb-backdrop-error-message" style="display: none; color: red"></div>
+                <div class="show-imdb-backdrop" style="display: none"></div>
+                <br/><br/>
+            </div>
+        </div>
+        <div id="choose-backdrop-by-tmdb" class="full-page-dialog" style="display: none">
+            <h1 class="dialog-title">Select Backdrop by TMDB ID</h1>
+            <div style="text-align: center">
+                <button type="button" class="pure-button" onclick="closeChooseBackdropByTmdb()">Close</button>
+                <br/><br/><br/><br/>
+                <form class="pure-form pure-form-aligned" id="choose-tmdb-backdrop-match-form" onsubmit="return editBackdropByTmdb()">
+                    <input type="text" id="choose-tmdb-backdrop-url" placeholder="TMDB URL or TMDB ID" />
+                </form>
+                <br/>
+                <button type="button" class="pure-button pure-button-primary" onclick="editBackdropByTmdb()">Select Backdrop</button>
+                <br/><br/><br/>
+                <div class="choose-tmdb-backdrop-error-message" style="display: none; color: red"></div>
+                <div class="show-tmdb-backdrop" style="display: none"></div>
+                <br/><br/>
+            </div>
+        </div>
+        <div id="choose-backdrop-types" class="full-page-dialog" style="display: none">
+            <h1 class="dialog-title">How would you like to select the backdrop?</h1>
+            <div style="text-align: center">
+                <br/>
+                <button type="button" class="pure-button pure-button-primary" onclick="openChooseBackdropByImdb()">By IMDB URL or ID</button>
+                <br/><br/><br/>
+                <button type="button" class="pure-button pure-button-primary" onclick="openChooseBackdropByTmdb()">By TMDB URL or ID</button>
+                <br/><br/><br/>
+                <button type="button" class="pure-button" onclick="closeChooseBackdropTypes()">Close</button>
+                <br/><br/><br/>
+            </div>
+        </div>
+        <div id="choose-badge-settings" class="full-page-dialog" style="display: none">
+            <h1 class="dialog-title">Choose Badge or Label</h1>
+            <div style="text-align: center">
+                <form class="pure-form">
+                    <select id="badge-or-label">
+                        <option value="badge">Badge</option>
+                        <option value="label">Label</option>
+                    </select>
+                </form>
+            </div>
+            <br/>
+            <div style="text-align: center; display: none" id="choose-label-view">
+                <div style="display: inline-block; opacity: 0.85; width: 570px; max-width: 80%; line-height: 26px">
+                    Labels are custom text that can be added to the top of a poster.
+                </div>
+                <form class="pure-form">
+                    <br/>
+                    <input type="text" id="label-text" placeholder="Label Text" />
+                    <br/><br/>
+                </form>
+            </div>
+            <div style="text-align: center; display: none" id="choose-badge-view">
+                <div style="display: inline-block; opacity: 0.85; width: 570px; max-width: 80%; line-height: 26px">
+                    Up to 4 badges can be displayed on one poster.
+                </div>
+                <br/><br/><br/>
+                <form class="pure-form badge-form">
+                    <b>Badge Position</b><br/><br/>
+                    <select id="badge-position">
+                        <option value="left">Top Left</option>
+                        <option value="center">Top Center</option>
+                        <option value="right">Top Right</option>
+                    </select>
+                    <br/><br/><br/>
+                    <b>Video Quality</b><br/><br/>
+                    <i style="opacity: 0.7">4K, 1080p, 720p, etc</i>
+                    <br/><br/>
+                    <select id="video-quality-badges">
+                        <option value="none">None</option>
+                        <option value="4k">4K (Ultra HD)</option>
+                        <option value="4kupscaled">4K (Upscaled)</option>
+                        <option value="1080p">1080p (Full HD)</option>
+                        <option value="720p">720p (HD)</option>
+                        <option value="2k">2K (Quad HD)</option>
+                        <option value="5k">5K (Ultra HD)</option>
+                        <option value="8k">8K (Ultra HD)</option>
+                        <option value="480p">480p (SD)</option>
+                        <option value="360p">360p (SD)</option>
+                        <option value="240p">240p (SD)</option>
+                    </select>
+                    <br/><br/><br/>
+                    <b>3D Video Badge</b><br/><br/>
+                    <select id="3d-badges">
+                        <option value="none">None</option>
+                        <option value="3d">3D (Stereoscopic)</option>
+                    </select>
+                    <br/><br/><br/>
+                    <b>Color Range</b><br/><br/>
+                    <i style="opacity: 0.7">HDR, Dolby Vision, etc</i>
+                    <br/><br/>
+                    <select id="hdr-badges">
+                        <option value="none">None</option>
+                        <option value="hdrcolor">HDR (True Color) [colorful]</option>
+                        <option value="hdr">HDR (True Color) [silver]</option>
+                        <option value="dolbyvision">Dolby Vision</option>
+                    </select>
+                    <br/><br/><br/>
+                    <b>Video Source</b><br/><br/>
+                    <i style="opacity: 0.7">Remux, BluRay, DVD, Web, etc</i>
+                    <br/><br/>
+                    <select id="remux-badges">
+                        <option value="none">None</option>
+                        <option value="remuxgold">REMUX (Lossless) [gold]</option>
+                        <option value="remux">REMUX (Lossless) [silver]</option>
+                        <option value="bluray">BluRay (Format)</option>
+                        <option value="dvd">DVD (Format)</option>
+                        <option value="web">Web (Format)</option>
+                    </select>
+                    <br/><br/><br/>
+                    <b>Video Codec</b><br/><br/>
+                    <i style="opacity: 0.7">h264, h265, etc</i>
+                    <br/><br/>
+                    <select id="codec-badges">
+                        <option value="none">None</option>
+                        <option value="h264">h264 (AVC)</option>
+                        <option value="h265">h265 (HEVC)</option>
+                    </select>
+                    <br/><br/><br/>
+                    <b>Video Container</b><br/><br/>
+                    <i style="opacity: 0.7">mkv, mp4, avi, etc</i>
+                    <br/><br/>
+                    <select id="container-badges">
+                        <option value="none">None</option>
+                        <option value="mkv">MKV (Matroska)</option>
+                        <option value="mp4">MP4 (MPEG-4)</option>
+                        <option value="avi">AVI (A/V Interleave)</option>
+                    </select>
+                    <br/><br/><br/>
+                    <b>Audio</b><br/><br/>
+                    <select id="audio-types">
+                        <option value="none-audio">None</option>
+                        <option value="standard-audio">Standard</option>
+                        <option value="dd-audio">Dolby Digital</option>
+                        <option value="ddp-audio">Dolby Digital Plus</option>
+                        <option value="truehd-audio">Dolby TrueHD</option>
+                        <option value="lpcm-audio">Linear PCM</option>
+                        <option value="atmos-audio">Atmos</option>
+                    </select>
+                    <div id="standard-audio" style="display: none">
+                        <br/>
+                        <select id="standard-audio-badges">
+                            <option value="none">None</option>
+                            <option value="audio20">2.0 (Stereo)</option>
+                            <option value="audio51">5.1 (Surround)</option>
+                            <option value="audio71">7.1 (Surround)</option>
+                        </select>
+                    </div>
+                    <div id="dd-audio" style="display: none">
+                        <br/>
+                        <select id="dd-audio-badges">
+                            <option value="none">None</option>
+                            <option value="dd20">DD2.0 (Stereo)</option>
+                            <option value="dd51">DD5.1 (Surround)</option>
+                        </select>
+                    </div>
+                    <div id="ddp-audio" style="display: none">
+                        <br/>
+                        <select id="ddp-audio-badges">
+                            <option value="none">None</option>
+                            <option value="ddp20">DDP2.0 (Stereo)</option>
+                            <option value="ddp51">DDP5.1 (Surround)</option>
+                        </select>
+                    </div>
+                    <div id="truehd-audio" style="display: none">
+                        <br/>
+                        <select id="truehd-audio-badges">
+                            <option value="none">None</option>
+                            <option value="truehd51lossless">TrueHD5.1 (Lossless)</option>
+                            <option value="truehd51surround">TrueHD5.1 (Surround)</option>
+                            <option value="truehd71lossless">TrueHD7.1 (Lossless)</option>
+                            <option value="truehd71surround">TrueHD7.1 (Surround)</option>
+                        </select>
+                    </div>
+                    <div id="lpcm-audio" style="display: none">
+                        <br/>
+                        <select id="lpcm-audio-badges">
+                            <option value="none">None</option>
+                            <option value="pcm51lossless">PCM5.1 (Lossless)</option>
+                            <option value="pcm51surround">PCM5.1 (Surround)</option>
+                            <option value="pcm71lossless">PCM7.1 (Lossless)</option>
+                            <option value="pcm71surround">PCM7.1 (Surround)</option>
+                        </select>
+                    </div>
+                    <div id="atmos-audio" style="display: none">
+                        <br/>
+                        <select id="atmos-audio-badges">
+                            <option value="none">None</option>
+                            <option value="atmos3dsound">Atmos (3D Sound)</option>
+                            <option value="atmossurround">Atmos (Surround)</option>
+                        </select>
+                    </div>
+                    <br/><br/><br/>
+                    <b>Personal Rating</b><br/><br/>
+                    <select id="pr-types">
+                        <option value="none">None</option>
+                        <option value="5stars">5 Stars (Perfect)</option>
+                        <option value="4stars">4 Stars (Great)</option>
+                        <option value="3stars">3 Stars (Good)</option>
+                        <option value="2stars">2 Stars (Bad)</option>
+                        <option value="1stars">1 Star (Horrible)</option>
+                    </select>
+                </form>
+                <br/><br/><br/>
+            </div>
+            <div style="text-align: center">
+                <button type="button" class="pure-button" onclick="openPreviewPoster()">Preview Poster</button>
+                &nbsp;&nbsp;&nbsp;
+                <button type="button" class="pure-button" onclick="cancelAddBadges()">Cancel</button>
+                &nbsp;&nbsp;&nbsp;
+                <button type="button" class="pure-button pure-button-primary" onclick="saveAddBadges()">Save &amp; Close</button>
+                <br/><br/><br/><br/><br/>
+            </div>
+        </div>
+        <div id="preview-poster" class="full-page-dialog" style="display: none">
+            <h1 class="dialog-title">Preview Poster</h1>
+            <div style="text-align: center">
+                <img id="preview-poster-img" src="">
+                <br/><br/><br/>
+                <button type="button" class="pure-button" onclick="closePreviewPoster()">Back</button>
+            </div>
+        </div>
+        <div id="create-poster" class="full-page-dialog" style="display: none">
+            <h1 class="dialog-title">Create Poster</h1>
+            <div style="text-align: center">
+                <div style="display: inline-block; opacity: 0.85; width: 570px; max-width: 80%; line-height: 26px">
+                    Here you can create a custom poster with user defined ratings. After creating the poster you can either save it locally for the designated folder or submit it to RPDB so others can download it too.
+                    <br/><br/>
+                    <b>All fields are optional.</b> If a Image URL is not chosen, the poster will be extracted based on IMDB or TMDB URL.
+                    <br/><br/>
+                    <b id="create-poster-folder-name"></b>
+                </div>
+                <form class="pure-form">
+                    <br/>
+                    <input type="text" id="create-poster-img-url" placeholder="Image URL" />
+                    <br/><br/>
+                    <input type="text" id="create-poster-tmdb-url" placeholder="TMDB URL" />
+                    <br/><br/>
+                    <input type="text" id="create-poster-imdb-url" placeholder="IMDB URL" />
+                    <br/><br/>
+                    <input type="text" id="create-poster-mc-url" placeholder="Metacritic URL" />
+                    <br/><br/>
+                    <input type="text" id="create-poster-rt-url" placeholder="Rotten Tomatoes URL" />
+                    <br/><br/>
+                    <b>Poster Type</b><br/><br/>
+                    <select id="create-poster-type">
+                        <option value="poster-default">With Ratings (Default)</option>
+                        <option value="poster-certs">With Ratings + Certifications</option>
+                        <option value="poster-rt">With Rotten Tomatoes + Audience Ratings</option>
+                        <option value="poster-mc">With Metacritic + Audience Ratings</option>
+                    </select>
+                    <div id="create-poster-default">
+                        <br/>
+                        <b>IMDB Rating (from 1.0 to 10.0)</b><br/><br/>
+                        <input type="text" id="create-poster-default-imdb" placeholder="IMDB Rating" />
+                        <br/><br/>
+                        <b>Metacritic (from 1 to 100)</b><br/><br/>
+                        <input type="text" id="create-poster-default-mc" placeholder="Metacritic Rating" />
+                        <br/><br/>
+                        <b>Rotten Tomatoes (from 1 to 100)</b><br/><br/>
+                        <input type="text" id="create-poster-default-rt" placeholder="Rotten Tomatoes Rating" />
+                        <br/><br/>
+                    </div>
+                    <div id="create-poster-certs" style="display: none">
+                        <br/>
+                        <b>IMDB Rating (from 1.0 to 10.0)</b><br/><br/>
+                        <input type="text" id="create-poster-certs-imdb" placeholder="IMDB Rating" />
+                        <br/><br/>
+                        <b>Metacritic (from 1 to 100)</b><br/><br/>
+                        <input type="text" id="create-poster-certs-mc" placeholder="Metacritic Rating" />
+                        <br/><br/>
+                        <b>Metacritic Certification</b><br/><br/>
+                        <select id="create-poster-certs-mc-cert">
+                            <option value="none">None</option>
+                            <option value="must-see">Must See</option>
+                        </select>
+                        <br/><br/>
+                        <b>Rotten Tomatoes (from 1 to 100)</b><br/><br/>
+                        <input type="text" id="create-poster-certs-rt" placeholder="Rotten Tomatoes Rating" />
+                        <br/><br/>
+                        <b>Rotten Tomatoes Certification</b><br/><br/>
+                        <select id="create-poster-certs-rt-cert">
+                            <option value="none">None</option>
+                            <option value="certified-fresh">Certified Fresh</option>
+                            <option value="spoiled">Spoiled</option>
+                        </select>
+                        <br/><br/>
+                    </div>
+                    <div id="create-poster-rt" style="display: none">
+                        <br/>
+                        <b>IMDB Rating (from 1.0 to 10.0)</b><br/><br/>
+                        <input type="text" id="create-poster-rt-imdb" placeholder="IMDB Rating" />
+                        <br/><br/>
+                        <b>Rotten Tomatoes (from 1 to 100)</b><br/><br/>
+                        <input type="text" id="create-poster-rt-rt" placeholder="Rotten Tomatoes Rating" />
+                        <br/><br/>
+                        <b>Rotten Tomatoes Certification</b><br/><br/>
+                        <select id="create-poster-rt-rt-cert">
+                            <option value="none">None</option>
+                            <option value="certified-fresh">Certified Fresh</option>
+                            <option value="spoiled">Spoiled</option>
+                        </select>
+                        <br/><br/>
+                        <b>Rotten Tomatoes Audience (from 1 to 100)</b><br/><br/>
+                        <input type="text" id="create-poster-rt-rtaudience" placeholder="Rotten Tomatoes Audience Rating" />
+                        <br/><br/>
+                        <b>Rotten Tomatoes Audience Certification</b><br/><br/>
+                        <select id="create-poster-rt-rtaudience-cert">
+                            <option value="none">None</option>
+                            <option value="spilled">Spilled</option>
+                        </select>
+                        <br/><br/>
+                    </div>
+                    <div id="create-poster-mc" style="display: none">
+                        <br/>
+                        <b>IMDB Rating (from 1.0 to 10.0)</b><br/><br/>
+                        <input type="text" id="create-poster-mc-imdb" placeholder="IMDB Rating" />
+                        <br/><br/>
+                        <b>Metacritic (from 1 to 100)</b><br/><br/>
+                        <input type="text" id="create-poster-mc-mc" placeholder="Metacritic Rating" />
+                        <br/><br/>
+                        <b>Metacritic Certification</b><br/><br/>
+                        <select id="create-poster-mc-mc-cert">
+                            <option value="none">None</option>
+                            <option value="must-see">Must See</option>
+                        </select>
+                        <br/><br/>
+                        <b>Metacritic Audience (from 1.0 to 10.0)</b><br/><br/>
+                        <input type="text" id="create-poster-mc-mcaudience" placeholder="Metacritic Audience Rating" />
+                        <br/><br/>
+                    </div>
+                </form>
+                <div style="text-align: center">
+                    <button type="button" class="pure-button" onclick="openPreviewCreatePoster()">Preview Poster</button>
+                    &nbsp;&nbsp;&nbsp;
+                    <button type="button" class="pure-button" onclick="cancelCreatePoster()">Cancel</button>
+                    &nbsp;&nbsp;&nbsp;
+                    <button type="button" class="pure-button" onclick="submitCreatePoster()">Submit</button>
+                    &nbsp;&nbsp;&nbsp;
+                    <button type="button" class="pure-button pure-button-primary" onclick="saveCreatePoster()">Save &amp; Close</button>
+                    <br/><br/><div id="submit-poster-success"><b>Thank you for submitting your poster to RPDB!</b></div><br/><br/><br/>
+                </div>
+            </div>
+        </div>
+        <div id="preview-create-poster" class="full-page-dialog" style="display: none">
+            <h1 class="dialog-title">Preview Poster</h1>
+            <div style="text-align: center">
+                <img id="preview-create-poster-img" src="" onerror="if (this.src && !this.src.endsWith('/')) { this.src='missing-poster.png' }">
+                <br/><br/><br/>
+                <button type="button" class="pure-button" onclick="closePreviewCreatePoster()">Back</button>
+            </div>
+        </div>
+        <div id="poster-settings" class="full-page-dialog" style="display: none">
+            <h1 class="dialog-title">Poster Settings</h1>
+            <div style="text-align: center">
+                <div id="note-tier-0" style="display: none">
+                    <i style="opacity: 0.7">Tier 0 API keys can only use the default poster type.</i>
+                    <br/><br/><br/>
+                </div>
+                <div id="note-tier-1" style="display: none">
+                    <i style="opacity: 0.7">Tier 1 API keys can only use the default poster type.</i>
+                    <br/><br/><br/>
+                </div>
+                <form class="pure-form pure-form-aligned" id="poster-type-opts-form">
+                    <b>Movie Posters</b>
+                    <br/><br/><br/>
+                    <span>Preferred Poster Language<span class="posterLangTier" style="display: none"> (Tier 2+ only)</span></span>
+                    <br/><br/>
+                    <div style="text-align: center">
+                        <select id="movie-poster-lang">
+                            <option value="en">
+                                English (en)
+                            </option><option value="ab">
+                                Abkhazian (ab)
+                            </option><option value="aa">
+                                Afar (aa)
+                            </option><option value="af">
+                                Afrikaans (af)
+                            </option><option value="ak">
+                                Akan (ak)
+                            </option><option value="sq">
+                                Albanian (sq)
+                            </option><option value="am">
+                                Amharic (am)
+                            </option><option value="ar">
+                                Arabic (ar)
+                            </option><option value="an">
+                                Aragonese (an)
+                            </option><option value="hy">
+                                Armenian (hy)
+                            </option><option value="as">
+                                Assamese (as)
+                            </option><option value="av">
+                                Avaric (av)
+                            </option><option value="ae">
+                                Avestan (ae)
+                            </option><option value="ay">
+                                Aymara (ay)
+                            </option><option value="az">
+                                Azerbaijani (az)
+                            </option><option value="bm">
+                                Bambara (bm)
+                            </option><option value="ba">
+                                Bashkir (ba)
+                            </option><option value="eu">
+                                Basque (eu)
+                            </option><option value="be">
+                                Belarusian (be)
+                            </option><option value="bn">
+                                Bengali (bn)
+                            </option><option value="bi">
+                                Bislama (bi)
+                            </option><option value="nb">
+                                Bokmål, Norwegian; Norwegian Bokmål (nb)
+                            </option><option value="bs">
+                                Bosnian (bs)
+                            </option><option value="br">
+                                Breton (br)
+                            </option><option value="bg">
+                                Bulgarian (bg)
+                            </option><option value="my">
+                                Burmese (my)
+                            </option><option value="cn">
+                                Cantonese (cn)
+                            </option><option value="ca">
+                                Catalan; Valencian (ca)
+                            </option><option value="km">
+                                Central Khmer (km)
+                            </option><option value="ch">
+                                Chamorro (ch)
+                            </option><option value="ce">
+                                Chechen (ce)
+                            </option><option value="ny">
+                                Chichewa; Chewa; Nyanja (ny)
+                            </option><option value="zh">
+                                Chinese (zh)
+                            </option><option value="cv">
+                                Chuvash (cv)
+                            </option><option value="kw">
+                                Cornish (kw)
+                            </option><option value="co">
+                                Corsican (co)
+                            </option><option value="cr">
+                                Cree (cr)
+                            </option><option value="hr">
+                                Croatian (hr)
+                            </option><option value="cs">
+                                Czech (cs)
+                            </option><option value="da">
+                                Danish (da)
+                            </option><option value="dv">
+                                Divehi; Dhivehi; Maldivian (dv)
+                            </option><option value="nl">
+                                Dutch; Flemish (nl)
+                            </option><option value="dz">
+                                Dzongkha (dz)
+                            </option><option value="eo">
+                                Esperanto (eo)
+                            </option><option value="et">
+                                Estonian (et)
+                            </option><option value="ee">
+                                Ewe (ee)
+                            </option><option value="fo">
+                                Faroese (fo)
+                            </option><option value="fj">
+                                Fijian (fj)
+                            </option><option value="fi">
+                                Finnish (fi)
+                            </option><option value="fr">
+                                French (fr)
+                            </option><option value="ff">
+                                Fulah (ff)
+                            </option><option value="gd">
+                                Gaelic; Scottish Gaelic (gd)
+                            </option><option value="gl">
+                                Galician (gl)
+                            </option><option value="lg">
+                                Ganda (lg)
+                            </option><option value="ka">
+                                Georgian (ka)
+                            </option><option value="de">
+                                German (de)
+                            </option><option value="el">
+                                Greek (el)
+                            </option><option value="gn">
+                                Guarani (gn)
+                            </option><option value="gu">
+                                Gujarati (gu)
+                            </option><option value="ht">
+                                Haitian; Haitian Creole (ht)
+                            </option><option value="ha">
+                                Hausa (ha)
+                            </option><option value="he">
+                                Hebrew (he)
+                            </option><option value="hz">
+                                Herero (hz)
+                            </option><option value="hi">
+                                Hindi (hi)
+                            </option><option value="ho">
+                                Hiri Motu (ho)
+                            </option><option value="hu">
+                                Hungarian (hu)
+                            </option><option value="is">
+                                Icelandic (is)
+                            </option><option value="io">
+                                Ido (io)
+                            </option><option value="ig">
+                                Igbo (ig)
+                            </option><option value="id">
+                                Indonesian (id)
+                            </option><option value="ia">
+                                Interlingua (ia)
+                            </option><option value="ie">
+                                Interlingue; Occidental (ie)
+                            </option><option value="iu">
+                                Inuktitut (iu)
+                            </option><option value="ik">
+                                Inupiaq (ik)
+                            </option><option value="ga">
+                                Irish (ga)
+                            </option><option value="it">
+                                Italian (it)
+                            </option><option value="ja">
+                                Japanese (ja)
+                            </option><option value="jv">
+                                Javanese (jv)
+                            </option><option value="kl">
+                                Kalaallisut; Greenlandic (kl)
+                            </option><option value="kn">
+                                Kannada (kn)
+                            </option><option value="kr">
+                                Kanuri (kr)
+                            </option><option value="ks">
+                                Kashmiri (ks)
+                            </option><option value="kk">
+                                Kazakh (kk)
+                            </option><option value="ki">
+                                Kikuyu; Gikuyu (ki)
+                            </option><option value="rw">
+                                Kinyarwanda (rw)
+                            </option><option value="ky">
+                                Kirghiz; Kyrgyz (ky)
+                            </option><option value="kv">
+                                Komi (kv)
+                            </option><option value="kg">
+                                Kongo (kg)
+                            </option><option value="ko">
+                                Korean (ko)
+                            </option><option value="kj">
+                                Kuanyama; Kwanyama (kj)
+                            </option><option value="ku">
+                                Kurdish (ku)
+                            </option><option value="lo">
+                                Lao (lo)
+                            </option><option value="la">
+                                Latin (la)
+                            </option><option value="lv">
+                                Latvian (lv)
+                            </option><option value="li">
+                                Limburgan; Limburger; Limburgish (li)
+                            </option><option value="ln">
+                                Lingala (ln)
+                            </option><option value="lt">
+                                Lithuanian (lt)
+                            </option><option value="lu">
+                                Luba-Katanga (lu)
+                            </option><option value="lb">
+                                Luxembourgish; Letzeburgesch (lb)
+                            </option><option value="mk">
+                                Macedonian (mk)
+                            </option><option value="mg">
+                                Malagasy (mg)
+                            </option><option value="ms">
+                                Malay (ms)
+                            </option><option value="ml">
+                                Malayalam (ml)
+                            </option><option value="mt">
+                                Maltese (mt)
+                            </option><option value="gv">
+                                Manx (gv)
+                            </option><option value="mi">
+                                Maori (mi)
+                            </option><option value="mr">
+                                Marathi (mr)
+                            </option><option value="mh">
+                                Marshallese (mh)
+                            </option><option value="mo">
+                                Moldavian; Moldovan (mo)
+                            </option><option value="mn">
+                                Mongolian (mn)
+                            </option><option value="na">
+                                Nauru (na)
+                            </option><option value="nv">
+                                Navajo; Navaho (nv)
+                            </option><option value="nd">
+                                Ndebele, North; North Ndebele (nd)
+                            </option><option value="nr">
+                                Ndebele, South; South Ndebele (nr)
+                            </option><option value="ng">
+                                Ndonga (ng)
+                            </option><option value="ne">
+                                Nepali (ne)
+                            </option><option value="se">
+                                Northern Sami (se)
+                            </option><option value="no">
+                                Norwegian (no)
+                            </option><option value="nn">
+                                Norwegian Nynorsk; Nynorsk, Norwegian (nn)
+                            </option><option value="oc">
+                                Occitan (post 1500) (oc)
+                            </option><option value="nj">
+                                Ojibwa (oj)
+                            </option><option value="or">
+                                Oriya (or)
+                            </option><option value="om">
+                                Oromo (om)
+                            </option><option value="os">
+                                Ossetian; Ossetic (os)
+                            </option><option value="pi">
+                                Pali (pi)
+                            </option><option value="pa">
+                                Panjabi; Punjabi (pa)
+                            </option><option value="fa">
+                                Persian (fa)
+                            </option><option value="pl">
+                                Polish (pl)
+                            </option><option value="pt">
+                                Portuguese (pt)
+                            </option><option value="ps">
+                                Pushto; Pashto (ps)
+                            </option><option value="qu">
+                                Quechua (qu)
+                            </option><option value="ro">
+                                Romanian (ro)
+                            </option><option value="rm">
+                                Romansh (rm)
+                            </option><option value="rn">
+                                Rundi (rn)
+                            </option><option value="ru">
+                                Russian (ru)
+                            </option><option value="sm">
+                                Samoan (sm)
+                            </option><option value="sg">
+                                Sango (sg)
+                            </option><option value="sa">
+                                Sanskrit (sa)
+                            </option><option value="sc">
+                                Sardinian (sc)
+                            </option><option value="sr">
+                                Serbian (sr)
+                            </option><option value="sh">
+                                Serbo-Croatian (sh)
+                            </option><option value="sn">
+                                Shona (sn)
+                            </option><option value="ii">
+                                Sichuan Yi; Nuosu (ii)
+                            </option><option value="sd">
+                                Sindhi (sd)
+                            </option><option value="si">
+                                Sinhala; Sinhalese (si)
+                            </option><option value="sk">
+                                Slovak (sk)
+                            </option><option value="sl">
+                                Slovenian (sl)
+                            </option><option value="so">
+                                Somali (so)
+                            </option><option value="st">
+                                Sotho, Southern (st)
+                            </option><option value="es">
+                                Spanish; Castilian (es)
+                            </option><option value="su">
+                                Sundanese (su)
+                            </option><option value="sw">
+                                Swahili (sw)
+                            </option><option value="ss">
+                                Swati (ss)
+                            </option><option value="sv">
+                                Swedish (sv)
+                            </option><option value="tl">
+                                Tagalog (tl)
+                            </option><option value="ty">
+                                Tahitian (ty)
+                            </option><option value="tg">
+                                Tajik (tg)
+                            </option><option value="ta">
+                                Tamil (ta)
+                            </option><option value="tt">
+                                Tatar (tt)
+                            </option><option value="te">
+                                Telugu (te)
+                            </option><option value="th">
+                                Thai (th)
+                            </option><option value="bo">
+                                Tibetan (bo)
+                            </option><option value="ti">
+                                Tigrinya (ti)
+                            </option><option value="to">
+                                Tonga (Tonga Islands) (to)
+                            </option><option value="ts">
+                                Tsonga (ts)
+                            </option><option value="tn">
+                                Tswana (tn)
+                            </option><option value="tr">
+                                Turkish (tr)
+                            </option><option value="tk">
+                                Turkmen (tk)
+                            </option><option value="tw">
+                                Twi (tw)
+                            </option><option value="ug">
+                                Uighur; Uyghur (ug)
+                            </option><option value="uk">
+                                Ukrainian (uk)
+                            </option><option value="uk">
+                                Urdu (ur)
+                            </option><option value="uz">
+                                Uzbek (uz)
+                            </option><option value="ve">
+                                Venda (ve)
+                            </option><option value="vi">
+                                Vietnamese (vi)
+                            </option><option value="vo">
+                                Volapük (vo)
+                            </option><option value="wa">
+                                Walloon (wa)
+                            </option><option value="cy">
+                                Welsh (cy)
+                            </option><option value="fy">
+                                Western Frisian (fy)
+                            </option><option value="wo">
+                                Wolof (wo)
+                            </option><option value="xh">
+                                Xhosa (xh)
+                            </option><option value="yi">
+                                Yiddish (yi)
+                            </option><option value="yo">
+                                Yoruba (yo)
+                            </option><option value="za">
+                                Zhuang; Chuang (za)
+                            </option><option value="zu">
+                                Zulu (zu)
+                            </option>
+                        </select>
+                    </div>
+                    <br/><br/>
+                    <label for="movie-textless-option-one" class="pure-checkbox" style="display: inline-block">
+                        <input type="checkbox" id="movie-textless-option-one" class="movieOptionsCheckboxTextless" value="textless" /> Prefer Textless Posters</label>
+                    <br/><br/><br/>
+                    <label for="movie-checkbox-radio-option-one" class="pure-radio" style="display: inline-block">
+                        <input type="radio" id="movie-checkbox-radio-option-one" name="movieOptionsRadios" value="poster-default" checked="" /> With Ratings (default)</label>
+                    &nbsp;&nbsp;
+                    <label for="movie-checkbox-radio-option-two" class="pure-radio" style="display: inline-block">
+                        <input type="radio" id="movie-checkbox-radio-option-two" name="movieOptionsRadios" value="poster-certs" /> With Ratings + Certifications</label>
+                    <br/><br/>
+                    <label for="movie-checkbox-radio-option-three" class="pure-radio" style="display: inline-block">
+                        <input type="radio" id="movie-checkbox-radio-option-three" name="movieOptionsRadios" value="poster-rt" /> With Rotten Tomatoes + Audience Ratings</label>
+                    &nbsp;&nbsp;
+                    <label for="movie-checkbox-radio-option-four" class="pure-radio" style="display: inline-block">
+                        <input type="radio" id="movie-checkbox-radio-option-four" name="movieOptionsRadios" value="poster-mc" /> With Metacritic + Audience Ratings</label>
+                    <br/><br/>
+                    <label for="movie-checkbox-radio-option-five" class="pure-radio" style="display: inline-block">
+                        <input type="radio" id="movie-checkbox-radio-option-five" name="movieOptionsRadios" value="rating-order" /> <span id="movie-rating-order-label">Choose Rating Order (Tier 3+)</span></label>
+                    <div id="movie-order-options" style="display: none">
+                        <br/><br/>
+                        <b>Movie Posters Rating Order</b>
+                        <br/><br/>
+                        <i style="opacity: 0.7">You can choose up to 5 ratings, the order in which you select the ratings is the order in which they will be shown.</i>
+                        <br/><br/>
+                        <i style="opacity: 0.7">Only 3 ratings can be shown at the same time on a poster.</i>
+                        <br/><br/>
+                        <i style="opacity: 0.7">If any of the first 3 ratings chosen are unavailable, it will show the next ratings in the chosen order instead.</i>
+                        <br/><br/>
+                        <label for="movie-order-option-one" class="pure-checkbox" style="display: inline-block">
+                            <input type="checkbox" id="movie-order-option-one" class="movieOrderCheckbox" value="imdb" /> <span>IMDB</span></label>
+                        &nbsp;&nbsp;
+                        <label for="movie-order-option-two" class="pure-checkbox" style="display: inline-block">
+                            <input type="checkbox" id="movie-order-option-two" class="movieOrderCheckbox" value="tmdb" /> <span>TMDB</span></label>
+                        &nbsp;&nbsp;
+                        <label for="movie-order-option-three" class="pure-checkbox" style="display: inline-block">
+                            <input type="checkbox" id="movie-order-option-three" class="movieOrderCheckbox" value="trakt" /> <span>Trakt</span></label>
+                        &nbsp;&nbsp;
+                        <label for="movie-order-option-eight" class="pure-checkbox" style="display: inline-block">
+                            <input type="checkbox" id="movie-order-option-eight" class="movieOrderCheckbox" value="letterboxd" /> <span>Letterboxd</span></label>
+                        <br/><br/>
+                        <label for="movie-order-option-four" class="pure-checkbox" style="display: inline-block">
+                            <input type="checkbox" id="movie-order-option-four" class="movieOrderCheckbox" value="tomatoes-critics" /> <span>Rotten Tomatoes Critics</span></label>
+                        &nbsp;&nbsp;
+                        <label for="movie-order-option-five" class="pure-checkbox" style="display: inline-block">
+                            <input type="checkbox" id="movie-order-option-five" class="movieOrderCheckbox" value="tomatoes-audience" /> <span>Rotten Tomatoes Audience</span></label>
+                        <br/><br/>
+                        <label for="movie-order-option-six" class="pure-checkbox" style="display: inline-block">
+                            <input type="checkbox" id="movie-order-option-six" class="movieOrderCheckbox" value="metacritic-critics" /> <span>Metacritic Critics</span></label>
+                        &nbsp;&nbsp;
+                        <label for="movie-order-option-seven" class="pure-checkbox" style="display: inline-block">
+                            <input type="checkbox" id="movie-order-option-seven" class="movieOrderCheckbox" value="metacritic-audience" /> <span>Metacritic Audience</span></label>
+                        <br/><br/>
+                        <label for="movie-order-option-nine" class="pure-checkbox" style="display: inline-block">
+                            <input type="checkbox" id="movie-order-option-nine" class="movieOrderCheckbox" value="myanimelist" /> <span>MyAnimeList</span></label>
+                        &nbsp;&nbsp;
+                        <label for="movie-order-option-ten" class="pure-checkbox" style="display: inline-block">
+                            <input type="checkbox" id="movie-order-option-ten" class="movieOrderCheckbox" value="commonsense" /> <span>Common Sense Media</span></label>
+                        &nbsp;&nbsp;
+                        <label for="movie-order-option-eleven" class="pure-checkbox" style="display: inline-block">
+                            <input type="checkbox" id="movie-order-option-eleven" class="movieOrderCheckbox" value="rogerebert" /> <span>Roger Ebert</span></label>
+                    </div>
+                    <br/><br/><br/><br/>
+                    <b>Series Posters</b>
+                    <br/><br/><br/>
+                    <span>Preferred Poster Language<span class="posterLangTier" style="display: none"> (Tier 2+ only)</span></span>
+                    <br/><br/>
+                    <div style="text-align: center">
+                        <select id="series-poster-lang">
+                            <option value="en">
+                                English (en)
+                            </option><option value="ab">
+                                Abkhazian (ab)
+                            </option><option value="aa">
+                                Afar (aa)
+                            </option><option value="af">
+                                Afrikaans (af)
+                            </option><option value="ak">
+                                Akan (ak)
+                            </option><option value="sq">
+                                Albanian (sq)
+                            </option><option value="am">
+                                Amharic (am)
+                            </option><option value="ar">
+                                Arabic (ar)
+                            </option><option value="an">
+                                Aragonese (an)
+                            </option><option value="hy">
+                                Armenian (hy)
+                            </option><option value="as">
+                                Assamese (as)
+                            </option><option value="av">
+                                Avaric (av)
+                            </option><option value="ae">
+                                Avestan (ae)
+                            </option><option value="ay">
+                                Aymara (ay)
+                            </option><option value="az">
+                                Azerbaijani (az)
+                            </option><option value="bm">
+                                Bambara (bm)
+                            </option><option value="ba">
+                                Bashkir (ba)
+                            </option><option value="eu">
+                                Basque (eu)
+                            </option><option value="be">
+                                Belarusian (be)
+                            </option><option value="bn">
+                                Bengali (bn)
+                            </option><option value="bi">
+                                Bislama (bi)
+                            </option><option value="nb">
+                                Bokmål, Norwegian; Norwegian Bokmål (nb)
+                            </option><option value="bs">
+                                Bosnian (bs)
+                            </option><option value="br">
+                                Breton (br)
+                            </option><option value="bg">
+                                Bulgarian (bg)
+                            </option><option value="my">
+                                Burmese (my)
+                            </option><option value="cn">
+                                Cantonese (cn)
+                            </option><option value="ca">
+                                Catalan; Valencian (ca)
+                            </option><option value="km">
+                                Central Khmer (km)
+                            </option><option value="ch">
+                                Chamorro (ch)
+                            </option><option value="ce">
+                                Chechen (ce)
+                            </option><option value="ny">
+                                Chichewa; Chewa; Nyanja (ny)
+                            </option><option value="zh">
+                                Chinese (zh)
+                            </option><option value="cv">
+                                Chuvash (cv)
+                            </option><option value="kw">
+                                Cornish (kw)
+                            </option><option value="co">
+                                Corsican (co)
+                            </option><option value="cr">
+                                Cree (cr)
+                            </option><option value="hr">
+                                Croatian (hr)
+                            </option><option value="cs">
+                                Czech (cs)
+                            </option><option value="da">
+                                Danish (da)
+                            </option><option value="dv">
+                                Divehi; Dhivehi; Maldivian (dv)
+                            </option><option value="nl">
+                                Dutch; Flemish (nl)
+                            </option><option value="dz">
+                                Dzongkha (dz)
+                            </option><option value="eo">
+                                Esperanto (eo)
+                            </option><option value="et">
+                                Estonian (et)
+                            </option><option value="ee">
+                                Ewe (ee)
+                            </option><option value="fo">
+                                Faroese (fo)
+                            </option><option value="fj">
+                                Fijian (fj)
+                            </option><option value="fi">
+                                Finnish (fi)
+                            </option><option value="fr">
+                                French (fr)
+                            </option><option value="ff">
+                                Fulah (ff)
+                            </option><option value="gd">
+                                Gaelic; Scottish Gaelic (gd)
+                            </option><option value="gl">
+                                Galician (gl)
+                            </option><option value="lg">
+                                Ganda (lg)
+                            </option><option value="ka">
+                                Georgian (ka)
+                            </option><option value="de">
+                                German (de)
+                            </option><option value="el">
+                                Greek (el)
+                            </option><option value="gn">
+                                Guarani (gn)
+                            </option><option value="gu">
+                                Gujarati (gu)
+                            </option><option value="ht">
+                                Haitian; Haitian Creole (ht)
+                            </option><option value="ha">
+                                Hausa (ha)
+                            </option><option value="he">
+                                Hebrew (he)
+                            </option><option value="hz">
+                                Herero (hz)
+                            </option><option value="hi">
+                                Hindi (hi)
+                            </option><option value="ho">
+                                Hiri Motu (ho)
+                            </option><option value="hu">
+                                Hungarian (hu)
+                            </option><option value="is">
+                                Icelandic (is)
+                            </option><option value="io">
+                                Ido (io)
+                            </option><option value="ig">
+                                Igbo (ig)
+                            </option><option value="id">
+                                Indonesian (id)
+                            </option><option value="ia">
+                                Interlingua (ia)
+                            </option><option value="ie">
+                                Interlingue; Occidental (ie)
+                            </option><option value="iu">
+                                Inuktitut (iu)
+                            </option><option value="ik">
+                                Inupiaq (ik)
+                            </option><option value="ga">
+                                Irish (ga)
+                            </option><option value="it">
+                                Italian (it)
+                            </option><option value="ja">
+                                Japanese (ja)
+                            </option><option value="jv">
+                                Javanese (jv)
+                            </option><option value="kl">
+                                Kalaallisut; Greenlandic (kl)
+                            </option><option value="kn">
+                                Kannada (kn)
+                            </option><option value="kr">
+                                Kanuri (kr)
+                            </option><option value="ks">
+                                Kashmiri (ks)
+                            </option><option value="kk">
+                                Kazakh (kk)
+                            </option><option value="ki">
+                                Kikuyu; Gikuyu (ki)
+                            </option><option value="rw">
+                                Kinyarwanda (rw)
+                            </option><option value="ky">
+                                Kirghiz; Kyrgyz (ky)
+                            </option><option value="kv">
+                                Komi (kv)
+                            </option><option value="kg">
+                                Kongo (kg)
+                            </option><option value="ko">
+                                Korean (ko)
+                            </option><option value="kj">
+                                Kuanyama; Kwanyama (kj)
+                            </option><option value="ku">
+                                Kurdish (ku)
+                            </option><option value="lo">
+                                Lao (lo)
+                            </option><option value="la">
+                                Latin (la)
+                            </option><option value="lv">
+                                Latvian (lv)
+                            </option><option value="li">
+                                Limburgan; Limburger; Limburgish (li)
+                            </option><option value="ln">
+                                Lingala (ln)
+                            </option><option value="lt">
+                                Lithuanian (lt)
+                            </option><option value="lu">
+                                Luba-Katanga (lu)
+                            </option><option value="lb">
+                                Luxembourgish; Letzeburgesch (lb)
+                            </option><option value="mk">
+                                Macedonian (mk)
+                            </option><option value="mg">
+                                Malagasy (mg)
+                            </option><option value="ms">
+                                Malay (ms)
+                            </option><option value="ml">
+                                Malayalam (ml)
+                            </option><option value="mt">
+                                Maltese (mt)
+                            </option><option value="gv">
+                                Manx (gv)
+                            </option><option value="mi">
+                                Maori (mi)
+                            </option><option value="mr">
+                                Marathi (mr)
+                            </option><option value="mh">
+                                Marshallese (mh)
+                            </option><option value="mo">
+                                Moldavian; Moldovan (mo)
+                            </option><option value="mn">
+                                Mongolian (mn)
+                            </option><option value="na">
+                                Nauru (na)
+                            </option><option value="nv">
+                                Navajo; Navaho (nv)
+                            </option><option value="nd">
+                                Ndebele, North; North Ndebele (nd)
+                            </option><option value="nr">
+                                Ndebele, South; South Ndebele (nr)
+                            </option><option value="ng">
+                                Ndonga (ng)
+                            </option><option value="ne">
+                                Nepali (ne)
+                            </option><option value="se">
+                                Northern Sami (se)
+                            </option><option value="no">
+                                Norwegian (no)
+                            </option><option value="nn">
+                                Norwegian Nynorsk; Nynorsk, Norwegian (nn)
+                            </option><option value="oc">
+                                Occitan (post 1500) (oc)
+                            </option><option value="nj">
+                                Ojibwa (oj)
+                            </option><option value="or">
+                                Oriya (or)
+                            </option><option value="om">
+                                Oromo (om)
+                            </option><option value="os">
+                                Ossetian; Ossetic (os)
+                            </option><option value="pi">
+                                Pali (pi)
+                            </option><option value="pa">
+                                Panjabi; Punjabi (pa)
+                            </option><option value="fa">
+                                Persian (fa)
+                            </option><option value="pl">
+                                Polish (pl)
+                            </option><option value="pt">
+                                Portuguese (pt)
+                            </option><option value="ps">
+                                Pushto; Pashto (ps)
+                            </option><option value="qu">
+                                Quechua (qu)
+                            </option><option value="ro">
+                                Romanian (ro)
+                            </option><option value="rm">
+                                Romansh (rm)
+                            </option><option value="rn">
+                                Rundi (rn)
+                            </option><option value="ru">
+                                Russian (ru)
+                            </option><option value="sm">
+                                Samoan (sm)
+                            </option><option value="sg">
+                                Sango (sg)
+                            </option><option value="sa">
+                                Sanskrit (sa)
+                            </option><option value="sc">
+                                Sardinian (sc)
+                            </option><option value="sr">
+                                Serbian (sr)
+                            </option><option value="sh">
+                                Serbo-Croatian (sh)
+                            </option><option value="sn">
+                                Shona (sn)
+                            </option><option value="ii">
+                                Sichuan Yi; Nuosu (ii)
+                            </option><option value="sd">
+                                Sindhi (sd)
+                            </option><option value="si">
+                                Sinhala; Sinhalese (si)
+                            </option><option value="sk">
+                                Slovak (sk)
+                            </option><option value="sl">
+                                Slovenian (sl)
+                            </option><option value="so">
+                                Somali (so)
+                            </option><option value="st">
+                                Sotho, Southern (st)
+                            </option><option value="es">
+                                Spanish; Castilian (es)
+                            </option><option value="su">
+                                Sundanese (su)
+                            </option><option value="sw">
+                                Swahili (sw)
+                            </option><option value="ss">
+                                Swati (ss)
+                            </option><option value="sv">
+                                Swedish (sv)
+                            </option><option value="tl">
+                                Tagalog (tl)
+                            </option><option value="ty">
+                                Tahitian (ty)
+                            </option><option value="tg">
+                                Tajik (tg)
+                            </option><option value="ta">
+                                Tamil (ta)
+                            </option><option value="tt">
+                                Tatar (tt)
+                            </option><option value="te">
+                                Telugu (te)
+                            </option><option value="th">
+                                Thai (th)
+                            </option><option value="bo">
+                                Tibetan (bo)
+                            </option><option value="ti">
+                                Tigrinya (ti)
+                            </option><option value="to">
+                                Tonga (Tonga Islands) (to)
+                            </option><option value="ts">
+                                Tsonga (ts)
+                            </option><option value="tn">
+                                Tswana (tn)
+                            </option><option value="tr">
+                                Turkish (tr)
+                            </option><option value="tk">
+                                Turkmen (tk)
+                            </option><option value="tw">
+                                Twi (tw)
+                            </option><option value="ug">
+                                Uighur; Uyghur (ug)
+                            </option><option value="uk">
+                                Ukrainian (uk)
+                            </option><option value="uk">
+                                Urdu (ur)
+                            </option><option value="uz">
+                                Uzbek (uz)
+                            </option><option value="ve">
+                                Venda (ve)
+                            </option><option value="vi">
+                                Vietnamese (vi)
+                            </option><option value="vo">
+                                Volapük (vo)
+                            </option><option value="wa">
+                                Walloon (wa)
+                            </option><option value="cy">
+                                Welsh (cy)
+                            </option><option value="fy">
+                                Western Frisian (fy)
+                            </option><option value="wo">
+                                Wolof (wo)
+                            </option><option value="xh">
+                                Xhosa (xh)
+                            </option><option value="yi">
+                                Yiddish (yi)
+                            </option><option value="yo">
+                                Yoruba (yo)
+                            </option><option value="za">
+                                Zhuang; Chuang (za)
+                            </option><option value="zu">
+                                Zulu (zu)
+                            </option>
+                        </select>
+                    </div>
+                    <br/><br/>
+                    <label for="series-textless-option-one" class="pure-checkbox" style="display: inline-block">
+                        <input type="checkbox" id="series-textless-option-one" class="seriesOptionsCheckboxTextless" value="textless" /> Prefer Textless Posters</label>
+                    <br/><br/><br/>
+                    <label for="series-checkbox-radio-option-one" class="pure-radio" style="display: inline-block">
+                        <input type="radio" id="series-checkbox-radio-option-one" name="seriesOptionsRadios" value="poster-default" checked="" /> With Ratings (default)</label>
+                    &nbsp;&nbsp;
+                    <label for="series-checkbox-radio-option-two" class="pure-radio" style="display: inline-block">
+                        <input type="radio" id="series-checkbox-radio-option-two" name="seriesOptionsRadios" value="poster-certs" /> With Ratings + Certifications</label>
+                    <br/><br/>
+                    <label for="series-checkbox-radio-option-three" class="pure-radio" style="display: inline-block">
+                        <input type="radio" id="series-checkbox-radio-option-three" name="seriesOptionsRadios" value="poster-rt" /> With Rotten Tomatoes + Audience Ratings</label>
+                    &nbsp;&nbsp;
+                    <label for="series-checkbox-radio-option-four" class="pure-radio" style="display: inline-block">
+                        <input type="radio" id="series-checkbox-radio-option-four" name="seriesOptionsRadios" value="poster-mc" /> With Metacritic + Audience Ratings</label>
+                    <br/><br/>
+                    <label for="series-checkbox-radio-option-five" class="pure-radio" style="display: inline-block">
+                        <input type="radio" id="series-checkbox-radio-option-five" name="seriesOptionsRadios" value="rating-order" /> <span id="series-rating-order-label">Choose Rating Order (Tier 3+)</span></label>
+                    <div id="series-order-options" style="display: none">
+                        <br/><br/>
+                        <b>Series Posters Rating Order</b>
+                        <br/><br/>
+                        <i style="opacity: 0.7">You can choose up to 5 ratings, the order in which you select the ratings is the order in which they will be shown.</i>
+                        <br/><br/>
+                        <i style="opacity: 0.7">Only 3 ratings can be shown at the same time on a poster.</i>
+                        <br/><br/>
+                        <i style="opacity: 0.7">If any of the first 3 ratings chosen are unavailable, it will show the next ratings in the chosen order instead.</i>
+                        <br/><br/>
+                        <label for="series-order-option-one" class="pure-checkbox" style="display: inline-block">
+                            <input type="checkbox" id="series-order-option-one" class="seriesOrderCheckbox" value="imdb" /> <span>IMDB</span></label>
+                        &nbsp;&nbsp;
+                        <label for="series-order-option-two" class="pure-checkbox" style="display: inline-block">
+                            <input type="checkbox" id="series-order-option-two" class="seriesOrderCheckbox" value="tmdb" /> <span>TMDB</span></label>
+                        &nbsp;&nbsp;
+                        <label for="series-order-option-three" class="pure-checkbox" style="display: inline-block">
+                            <input type="checkbox" id="series-order-option-three" class="seriesOrderCheckbox" value="trakt" /> <span>Trakt</span></label>
+                        &nbsp;&nbsp;
+                        <label for="series-order-option-eight" class="pure-checkbox" style="display: inline-block">
+                            <input type="checkbox" id="series-order-option-eight" class="seriesOrderCheckbox" value="letterboxd" /> <span>Letterboxd</span></label>
+                        <br/><br/>
+                        <label for="series-order-option-four" class="pure-checkbox" style="display: inline-block">
+                            <input type="checkbox" id="series-order-option-four" class="seriesOrderCheckbox" value="tomatoes-critics" /> <span>Rotten Tomatoes Critics</span></label>
+                        &nbsp;&nbsp;
+                        <label for="series-order-option-five" class="pure-checkbox" style="display: inline-block">
+                            <input type="checkbox" id="series-order-option-five" class="seriesOrderCheckbox" value="tomatoes-audience" /> <span>Rotten Tomatoes Audience</span></label>
+                        <br/><br/>
+                        <label for="series-order-option-six" class="pure-checkbox" style="display: inline-block">
+                            <input type="checkbox" id="series-order-option-six" class="seriesOrderCheckbox" value="metacritic-critics" /> <span>Metacritic Critics</span></label>
+                        &nbsp;&nbsp;
+                        <label for="series-order-option-seven" class="pure-checkbox" style="display: inline-block">
+                            <input type="checkbox" id="series-order-option-seven" class="seriesOrderCheckbox" value="metacritic-audience" /> <span>Metacritic Audience</span></label>
+                        <br/><br/>
+                        <label for="series-order-option-nine" class="pure-checkbox" style="display: inline-block">
+                            <input type="checkbox" id="series-order-option-nine" class="seriesOrderCheckbox" value="myanimelist" /> <span>MyAnimeList</label>
+                        &nbsp;&nbsp;
+                        <label for="series-order-option-ten" class="pure-checkbox" style="display: inline-block">
+                            <input type="checkbox" id="series-order-option-ten" class="seriesOrderCheckbox" value="commonsense" /> <span>Common Sense Media</span></label>
+                        &nbsp;&nbsp;
+                        <label for="series-order-option-eleven" class="pure-checkbox" style="display: inline-block">
+                            <input type="checkbox" id="series-order-option-eleven" class="seriesOrderCheckbox" value="rogerebert" /> <span>Roger Ebert</span></label>
+                    </div>
+                </form>
+                <br/><br/><br/><br/>
+                <button type="button" class="pure-button pure-button-primary" onclick="closePosterSettings()">Save &amp; Close</button>
+                <br/><br/><br/>
+            </div>
+        </div>
+        <div id="tier-3-only-message" class="full-page-dialog" style="display: none">
+            <div style="text-align: center">
+                <br/><br/>
+                This feature is only available with Tier 3 (or higher)
+                <br/><br/><br/>
+                <button type="button" class="pure-button" onclick="closeTier3onlyMessage()">Close</button>
+            </div>
+        </div>
+        <script>
+            function ordinal_suffix_of(i) {
+                var j = i % 10,
+                    k = i % 100;
+                if (j == 1 && k != 11) {
+                    return i + "st";
+                }
+                if (j == 2 && k != 12) {
+                    return i + "nd";
+                }
+                if (j == 3 && k != 13) {
+                    return i + "rd";
+                }
+                return i + "th";
+            }
+            var needsUpdate = false
+            function checkUpdate() {
+                if (needsUpdate)
+                    return
+                $.get('/needsUpdate', function(data) {
+                    if ((data || {}).needsUpdate) {
+                        needsUpdate = true
+                        if (data.dockerUpdate) {
+                            $('#update-check').html('A new update is available, please update your <a target="_blank" href="https://hub.docker.com/r/jaruba/rpdb-folders-docker" style="color: #0078e7; text-decoration: none">docker image</a>.')
+                        } else {
+                            $('#update-check').html('A new update is available, <a target="_blank" href="' + data.zipBall + '" style="color: #0078e7; text-decoration: none">download it here</a>!')
+                        }
+                        $('#update-check').css('display', 'inline-block')
+                    }
+                })
+                setTimeout(checkUpdate, 24 * 60 * 60 * 1000) // check daily
+            }
+            var tmdbKey = '05901cdec5faad4dc81cab5569e8538c'
+            var searchStrings = {}
+            var searchFolderName = ''
+            var searchFolderType = ''
+            var movieRatingOrder = ''
+            var seriesRatingOrder = ''
+            var apiKey
+            var urlParams = Object.fromEntries((new URLSearchParams(window.location.search)).entries())
+            if (urlParams.key) apiKey = urlParams.key
+            function load_api_key(skipValidation) {
+                if ($('#api-key-error-1').is(':visible'))
+                    $('#api-key-error-1').hide()
+                if ($('#api-key-error-2').is(':visible'))
+                    $('#api-key-error-2').hide()
+                if (!apiKey) {
+                    $('#api-key-error-1').show()
+                    return
+                }
+                function validatedKey() {
+                    var tier = 1
+                    if (apiKey.startsWith('t2-'))
+                        tier = 2
+                    else if (apiKey.startsWith('t3-'))
+                        tier = 3
+                    else if (apiKey.startsWith('t4-'))
+                        tier = 4
+                    else if (apiKey.startsWith('t5-'))
+                        tier = 5
+                    else if (apiKey.startsWith('t0-')) // trial key
+                        tier = 0
+                    $('#top-links').hide()
+                    $('#api-key-form').hide()
+                    $('#api-key-success-msg').text('Successfully loaded Tier ' + tier + ' API Key!')
+                    $('#api-key-success').show()
+                    var shouldUpdate = false
+                    if (tier == 0) {
+                        $('#note-tier-0').show()
+                    }
+                    if (tier == 1) {
+                        $('#note-tier-1').show()
+                    }
+                    if (tier == 1 || tier == 0) {
+                        if (!$('#movie-checkbox-radio-option-one').is(':checked')) {
+                            $('#movie-checkbox-radio-option-one').prop('checked', true)
+                            shouldUpdate = true
+                        }
+                        $('#movie-checkbox-radio-option-two').prop('disabled', true)
+                        $('#movie-checkbox-radio-option-three').prop('disabled', true)
+                        $('#movie-checkbox-radio-option-four').prop('disabled', true)
+                        if (!$('#series-checkbox-radio-option-one').is(':checked')) {
+                            $('#series-checkbox-radio-option-one').prop('checked', true)
+                            shouldUpdate = true
+                        }
+                        $('#series-checkbox-radio-option-two').prop('disabled', true)
+                        $('#series-checkbox-radio-option-three').prop('disabled', true)
+                        $('#series-checkbox-radio-option-four').prop('disabled', true)
+                        $('#poster-lang-allowed').hide()
+                        $('#poster-lang-disallowed').show()
+                        $('.posterLangTier').show()
+                        $('#movie-poster-lang').prop('disabled', 'disabled')
+                        $('#movie-poster-lang').val($('#movie-poster-lang option:first').val())
+                        $('#series-poster-lang').prop('disabled', 'disabled')
+                        $('#series-poster-lang').val($('#series-poster-lang option:first').val())
+                    } else {
+                        $('#movie-checkbox-radio-option-two').prop('disabled', false)
+                        $('#movie-checkbox-radio-option-three').prop('disabled', false)
+                        $('#movie-checkbox-radio-option-four').prop('disabled', false)
+                        $('#series-checkbox-radio-option-two').prop('disabled', false)
+                        $('#series-checkbox-radio-option-three').prop('disabled', false)
+                        $('#series-checkbox-radio-option-four').prop('disabled', false)
+                        $('.posterLangTier').hide()
+                        $('#movie-poster-lang').prop('disabled', false)
+                        $('#series-poster-lang').prop('disabled', false)
+                    }
+                    if (tier == 3 || tier == 4 || tier == 5) {
+                        $('#backdrop-opts').show()
+                        $('#note-tier-3').hide()
+                        $('#backdrops-option-one').prop('disabled', false)
+                        $('.open-add-badges-button').attr('onclick', 'openAddBadges()');
+                    } else {
+                        $('#backdrop-opts').hide()
+                        $('.open-add-badges-button').attr('onclick', 'openTier3onlyMessage()');
+                        $('#note-tier-3').show()
+                        $('#backdrops-option-one').prop('disabled', true)
+                        $('#custom-poster-allowed').hide()
+                        $('#custom-poster-disallowed').show()
+                        $('#movie-checkbox-radio-option-five').attr("disabled", true)
+                        $('#movie-rating-order-label').css('opacity', '0.6')
+                        $('#series-checkbox-radio-option-five').attr("disabled", true)
+                        $('#series-rating-order-label').css('opacity', '0.6')
+                    }
+                    if (shouldUpdate)
+                        setTimeout(() => { updateSettings() })
+                    $('#opts-holder').show()
+                }
+                if (skipValidation) {
+                    validatedKey()
+                } else {
+                    $.get('https://api.ratingposterdb.com/' + apiKey + '/isValid', function(data) {
+                        if ((data || {}).valid) {
+                            if ($('#remember-me').is(':checked')) {
+                                if (((window || {}).localStorage || {}).setItem) {
+                                    window.localStorage.setItem('apiKey', apiKey)
+                                }
+                            }
+                            validatedKey()
+                        } else {
+                            $('#api-key').val('')
+                            $('#api-key-error-2').show()
+                        }
+                    }).fail(function() {
+                        $('#api-key').val('')
+                        $('#api-key-error-2').show()
+                    });
+                }
+            }
+            function updateSettings() {
+                settings.moviePosterType =$('input[name=movieOptionsRadios]:checked', '#poster-type-opts-form').val();
+                settings.seriesPosterType =$('input[name=seriesOptionsRadios]:checked', '#poster-type-opts-form').val();
+                settings.movieRatingOrder = movieRatingOrder
+                settings.seriesRatingOrder = seriesRatingOrder
+                settings.movieTextless = false
+                if ($("#movie-textless-option-one").is(':checked')) {
+                  settings.movieTextless = true
+                }
+                settings.seriesTextless = false
+                if ($("#series-textless-option-one").is(':checked')) {
+                  settings.seriesTextless = true
+                }
+                settings.moviePosterLang = $('#movie-poster-lang').val()
+                settings.seriesPosterLang = $('#series-poster-lang').val()
+                if (((window || {}).localStorage || {}).setItem) {
+                    window.localStorage.setItem('settings', JSON.stringify(settings))
+                }
+            }
+            function set_api_key() {
+                apiKey = $('#api-key').val()
+                load_api_key()
+                return false
+            }
+            var init
+            var settings = {
+                movieTextless: false,
+                seriesTextless: false,
+                moviePosterType: 'poster-default',
+                seriesPosterType: 'poster-default',
+                movieRatingOrder: '',
+                seriesRatingOrder: '',
+                moviePosterLang: 'en',
+                seriesPosterLang: 'en',
+            }
+            $(document).ready(function() {
+                init = function() {
+                    if (((window || {}).localStorage || {}).getItem) {
+                        // load saved data
+                        savedData = {}
+                        if (window.localStorage.getItem('settings')) {
+                            try {
+                                settings = JSON.parse(window.localStorage.getItem('settings'))
+                            } catch(e) {}
+                        }
+                        if (settings.movieTextless) {
+                            $("#movie-textless-option-one").prop('checked', true)
+                        }
+                        if (settings.seriesTextless) {
+                            $("#series-textless-option-one").prop('checked', true)
+                        }
+                        if (settings.moviePosterType) {
+                            $('input[name=movieOptionsRadios]', '#poster-type-opts-form').each((ij,el)=> {
+                                if ($(el).val() == settings.moviePosterType) {
+                                    $(el).prop('checked', true)
+                                } else {
+                                    $(el).prop('checked', false)
+                                }
+                            })
+                            if (settings.moviePosterType == 'rating-order') {
+                                $('#movie-order-options').show();
+                            }
+                        }
+                        if (settings.seriesPosterType) {
+                            $('input[name=seriesOptionsRadios]', '#poster-type-opts-form').each((ij,el)=> {
+                                if ($(el).val() == settings.seriesPosterType) {
+                                    $(el).prop('checked', true)
+                                } else {
+                                    $(el).prop('checked', false)
+                                }
+                            })
+                            if (settings.seriesPosterType == 'rating-order') {
+                                $('#series-order-options').show();
+                            }
+                        }
+
+                        if (settings.movieRatingOrder) {
+                            movieRatingOrder = settings.movieRatingOrder;
+                            var currentCount = 0;
+                            movieRatingOrder.split(',').forEach(el => {
+                                var jEl = $("input.movieOrderCheckbox[value='" + el + "']")
+                                if (jEl.length) {
+                                    currentCount++;
+                                    var elLabel = $("label[for='" + jEl.attr('id') + "'] span");
+                                    if (elLabel.length) {
+                                        var elLabelText = elLabel.text();
+                                        if (elLabelText.includes(' ('))
+                                            elLabelText = elLabelText.split(' (')[0]
+                                        elLabel.text(elLabelText + ' (' + ordinal_suffix_of(currentCount) + ')');
+                                    }
+                                    jEl.prop('checked', true);
+                                }
+                            })
+                        }
+                        if (settings.seriesRatingOrder) {
+                            seriesRatingOrder = settings.seriesRatingOrder;
+                            var currentCount = 0;
+                            seriesRatingOrder.split(',').forEach(el => {
+                                var jEl = $("input.seriesOrderCheckbox[value='" + el + "']")
+                                if (jEl.length) {
+                                    currentCount++;
+                                    var elLabel = $("label[for='" + jEl.attr('id') + "'] span");
+                                    if (elLabel.length) {
+                                        var elLabelText = elLabel.text();
+                                        if (elLabelText.includes(' ('))
+                                            elLabelText = elLabelText.split(' (')[0]
+                                        elLabel.text(elLabelText + ' (' + ordinal_suffix_of(currentCount) + ')');
+                                    }
+                                    jEl.prop('checked', true);
+                               }
+                            })
+                        }
+
+                        if (settings.moviePosterLang) {
+                            $('#movie-poster-lang').val(settings.moviePosterLang)
+                        }
+                        if (settings.seriesPosterLang) {
+                            $('#series-poster-lang').val(settings.seriesPosterLang)
+                        }
+                        if (window.localStorage.getItem('apiKey')) {
+                            var tempKey = window.localStorage.getItem('apiKey')
+                            if (tempKey != '0') {
+                                apiKey = window.localStorage.getItem('apiKey')
+                            }
+                        }
+                        if (apiKey) {
+                            load_api_key()
+                        } else {
+                            $('#top-links').show()
+                            $('#api-key-form').show()
+                        }
+                    }
+                    $('#badge-or-label').on('change', function() {
+                        $('#badge-position').val($('#badge-position option:first').val())
+                        $('#video-quality-badges').val($('#video-quality-badges option:first').val())
+                        $('#3d-badges').val($('#3d-badges option:first').val())
+                        $('#hdr-badges').val($('#hdr-badges option:first').val())
+                        $('#remux-badges').val($('#remux-badges option:first').val())
+                        $('#codec-badges').val($('#codec-badges option:first').val())
+                        $('#container-badges').val($('#container-badges option:first').val())
+                        $('#audio-types').val($('#audio-types option:first').val())
+                        $('#pr-types').val($('#pr-types option:first').val())
+                        Array.from(document.getElementById('audio-types').options).forEach(el => {
+                            if (el.value != 'none-audio') {
+                                $('#' + el.value).hide()
+                                $('#' + el.value + ' select').val($('#' + el.value + ' select option:first').val())
+                            }
+                        })
+                        $('#label-text').val('')
+                        $('#choose-label-view').hide()
+                        $('#choose-badge-view').hide()
+                        $('#choose-' + $('#badge-or-label').val() + '-view').show()
+                    })
+                    $('#audio-types').on('change', function() {
+                        var newAudioTypeSelect = $('#audio-types').val()
+                        Array.from(document.getElementById('audio-types').options).forEach(el => {
+                            if (el.value != 'none-audio') {
+                                $('#' + el.value).hide()
+                                $('#' + el.value + ' select').val($('#' + el.value + ' select option:first').val())
+                            }
+                        })
+                        if (newAudioTypeSelect != 'none-audio') {
+                            $('#' + newAudioTypeSelect).show()
+                        }
+                    })
+                    $('#create-poster-type').on('change', function() {
+                        var newCreatePosterType = $('#create-poster-type').val()
+                        Array.from(document.getElementById('create-poster-type').options).forEach(el => {
+                            $('#create-' + el.value).hide()
+                            $('#create-' + el.value + ' select').val($('#create-' + el.value + ' select option:first').val())
+                        })
+                        $('#create-' + newCreatePosterType).show()
+                    })
+                    $('#adv-opts-form input').on('change', function() {
+                        updateSettings();
+                    })
+                    $('#poster-type-opts-form input').on('change', function() {
+                        if ((this.id || '').startsWith('movie-checkbox-radio-option-')) {
+                            if (this.value == 'rating-order') {
+                                $('#movie-order-options').show();
+                            } else if ((this.value || '').startsWith('poster-')) {
+                                $('#movie-order-options').hide();
+                                if (movieRatingOrder) {
+                                    movieRatingOrder.split(',').forEach(el => {
+                                        var jEl = $("input.movieOrderCheckbox[value='" + el + "']")
+                                        if (jEl.length) {
+                                            var elLabel = $("label[for='" + jEl.attr('id') + "'] span");
+                                            if (elLabel.length) {
+                                                var elLabelText = elLabel.text();
+                                                if (elLabelText.includes(' ('))
+                                                    elLabelText = elLabelText.split(' (')[0]
+                                                elLabel.text(elLabelText);
+                                            }
+                                            jEl.prop('checked', false);
+                                        }
+                                    })
+                                    movieRatingOrder = '';
+                                }
+                            }
+                        } else if ((this.id || '').startsWith('series-checkbox-radio-option-')) {
+                            if (this.value == 'rating-order') {
+                                $('#series-order-options').show();
+                            } else if ((this.value || '').startsWith('poster-')) {
+                                $('#series-order-options').hide();
+                                if (seriesRatingOrder) {
+                                    seriesRatingOrder.split(',').forEach(el => {
+                                        var jEl = $("input.movieOrderCheckbox[value='" + el + "']")
+                                        if (jEl.length) {
+                                            var elLabel = $("label[for='" + jEl.attr('id') + "'] span");
+                                            if (elLabel.length) {
+                                                var elLabelText = elLabel.text();
+                                                if (elLabelText.includes(' ('))
+                                                    elLabelText = elLabelText.split(' (')[0]
+                                                elLabel.text(elLabelText);
+                                            }
+                                            jEl.prop('checked', false);
+                                        }
+                                    })
+                                    seriesRatingOrder = '';
+                                }
+                            }
+                        } else if ((this.id || '').startsWith('movie-order-option-')) {
+                            if (this.checked) {
+                                var currentCount = 0;
+                                if (movieRatingOrder) {
+                                    currentCount = movieRatingOrder.split(',').length;
+                                }
+                                if (currentCount < 5) {
+                                    var nextCount = currentCount + 1;
+                                    var label = $("label[for='" + this.id + "'] span");
+                                    if (label.length) {
+                                        label.text(label.text() + ' (' + ordinal_suffix_of(nextCount) + ')');
+                                    }
+                                    movieRatingOrder += (movieRatingOrder ? ',' : '') + this.value;
+                                } else {
+                                    $(this).prop('checked', false);
+                                }
+                            } else {
+                                var label = $("label[for='" + this.id + "'] span");
+                                if (label.length) {
+                                    var labelText = label.text();
+                                    if (labelText.includes(' ('))
+                                        labelText = labelText.split(' (')[0]
+                                    label.text(labelText);
+                                }
+                                if (movieRatingOrder.includes(this.value)) {
+                                    if (movieRatingOrder == this.value) {
+                                        movieRatingOrder = '';
+                                    } else if (movieRatingOrder.startsWith(this.value)) {
+                                        movieRatingOrder = movieRatingOrder.replace(this.value + ',', '');
+                                    } else {
+                                        movieRatingOrder = movieRatingOrder.replace(',' + this.value, '');
+                                    }
+                                }
+                                var currentCount = 0;
+                                movieRatingOrder.split(',').forEach(el => {
+                                    var jEl = $("input.movieOrderCheckbox[value='" + el + "']")
+                                    if (jEl.length) {
+                                        currentCount++;
+                                        var elLabel = $("label[for='" + jEl.attr('id') + "'] span");
+                                        if (elLabel.length) {
+                                            var elLabelText = elLabel.text();
+                                            if (elLabelText.includes(' ('))
+                                                elLabelText = elLabelText.split(' (')[0]
+                                            elLabel.text(elLabelText + ' (' + ordinal_suffix_of(currentCount) + ')');
+                                        }
+                                    }
+                                })
+                            }
+                        } else if ((this.id || '').startsWith('series-order-option-')) {
+                            if (this.checked) {
+                                var currentCount = 0;
+                                if (seriesRatingOrder) {
+                                    currentCount = seriesRatingOrder.split(',').length;
+                                }
+                                if (currentCount < 5) {
+                                    var nextCount = currentCount + 1;
+                                    var label = $("label[for='" + this.id + "'] span");
+                                    if (label.length) {
+                                        label.text(label.text() + ' (' + ordinal_suffix_of(nextCount) + ')');
+                                    }
+                                    seriesRatingOrder += (seriesRatingOrder ? ',' : '') + this.value;
+                                } else {
+                                    $(this).prop('checked', false);
+                                }
+                            } else {
+                                var label = $("label[for='" + this.id + "'] span");
+                                if (label.length) {
+                                    var labelText = label.text();
+                                    if (labelText.includes(' ('))
+                                        labelText = labelText.split(' (')[0]
+                                    label.text(labelText);
+                                }
+                                if (seriesRatingOrder.includes(this.value)) {
+                                    if (seriesRatingOrder == this.value) {
+                                        seriesRatingOrder = '';
+                                    } else if (seriesRatingOrder.startsWith(this.value)) {
+                                        seriesRatingOrder = seriesRatingOrder.replace(this.value + ',', '');
+                                    } else {
+                                        seriesRatingOrder = seriesRatingOrder.replace(',' + this.value, '');
+                                    }
+                                }
+                                var currentCount = 0;
+                                seriesRatingOrder.split(',').forEach(el => {
+                                    var jEl = $("input.seriesOrderCheckbox[value='" + el + "']")
+                                    if (jEl.length) {
+                                        currentCount++;
+                                        var elLabel = $("label[for='" + jEl.attr('id') + "'] span");
+                                        if (elLabel.length) {
+                                            var elLabelText = elLabel.text();
+                                            if (elLabelText.includes(' ('))
+                                                elLabelText = elLabelText.split(' (')[0]
+                                            elLabel.text(elLabelText + ' (' + ordinal_suffix_of(currentCount) + ')');
+                                        }
+                                    }
+                                })
+                            }
+                        }
+                        updateSettings();
+                    });
+                    $("#movie-textless-option-one").on('change', function() {
+                        updateSettings();
+                    });
+                    $("#series-textless-option-one").on('change', function() {
+                        updateSettings();
+                    });
+                    $('#movie-poster-lang').on('change', function() {
+                        updateSettings();
+                    });
+                    $('#series-poster-lang').on('change', function() {
+                        updateSettings();
+                    });
+                    $("#change-api-key").click(function(e) {
+                        e.preventDefault()
+                        apiKey = false
+                        if (((window || {}).localStorage || {}).setItem) {
+                            window.localStorage.setItem('apiKey', '0')
+                        }
+                        $('#api-key').val('')
+                        $('#opts-holder').hide()
+                        $('#api-key-success').hide()
+                        $('#note-tier-1').hide()
+                        $('#top-links').show()
+                        $('#api-key-form').show()
+                    });
+                }
+                init()
+            });
+            function openCreatePoster() {
+                $('#create-poster-folder-name').text(searchFolderName)
+
+                $('#submit-poster-success').hide()
+
+                $('#create-poster-img-url').val('')
+                $('#create-poster-tmdb-url').val('')
+                $('#create-poster-imdb-url').val('')
+                $('#create-poster-mc-url').val('')
+                $('#create-poster-rt-url').val('')
+
+                $('#create-poster-type').val($('#create-poster-type option:first').val())
+
+                $('#create-poster-default').show()
+                $('#create-poster-certs').hide()
+                $('#create-poster-mc').hide()
+                $('#create-poster-rt').hide()
+
+                $('#create-poster-default-imdb').val('')
+                $('#create-poster-default-mc').val('')
+                $('#create-poster-default-rt').val('')
+
+                $('#create-poster-certs-imdb').val('')
+                $('#create-poster-certs-mc').val('')
+                $('#create-poster-certs-rt').val('')
+                $('#create-poster-certs-mc-cert').val($('#create-poster-certs-mc-cert option:first').val())
+                $('#create-poster-certs-rt-cert').val($('#create-poster-certs-rt-cert option:first').val())
+
+                $('#create-poster-rt-imdb').val('')
+                $('#create-poster-rt-rt').val('')
+                $('#create-poster-rt-rtaudience').val('')
+                $('#create-poster-rt-rt-cert').val($('#create-poster-rt-rt-cert option:first').val())
+                $('#create-poster-rt-rtaudience-cert').val($('#create-poster-rt-rtaudience-cert option:first').val())
+
+                $('#create-poster-mc-imdb').val('')
+                $('#create-poster-mc-mc').val('')
+                $('#create-poster-mc-mcaudience').val('')
+                $('#create-poster-mc-mc-cert').val($('#create-poster-mc-mc-cert option:first').val())
+
+                $('#create-poster').show()
+            }
+
+            function openPreviewCreatePoster() {
+                var imgUrl = $('#create-poster-img-url').val()
+                var tmdbUrl = $('#create-poster-tmdb-url').val()
+                var imdbUrl = $('#create-poster-imdb-url').val()
+                var mcUrl = $('#create-poster-mc-url').val()
+                var rtUrl = $('#create-poster-rt-url').val()
+
+                var posterType = $('#create-poster-type').val()
+                var imdbScore = $('#create-'+posterType+'-imdb').val()
+                var rtScore = $('#create-'+posterType+'-rt').val()
+                var mcScore = $('#create-'+posterType+'-mc').val()
+                var rtAudScore = $('#create-'+posterType+'-rtaudience').val()
+                var mcAudScore = $('#create-'+posterType+'-mcaudience').val()
+                var rtCert = $('#create-'+posterType+'-rt-cert').val()
+                var mcCert = $('#create-'+posterType+'-mc-cert').val()
+                var rtAudCert = $('#create-'+posterType+'-rtaudience-cert').val()
+
+                var ratingString = ''
+
+                var extras = ''
+
+                if (posterType == 'poster-default') {
+                    ratingString = imdbScore + '|' + rtScore + '|' + mcScore
+                } else if (posterType == 'poster-certs') {
+                    ratingString = imdbScore + '|' + rtScore + '|' + mcScore
+                    extras += (rtCert == 'certified-fresh' ? 'rtCert=1' : rtCert == 'spoiled' ? 'rtCert=-1' : '')
+                    extras += (extras ? '&' : '') + (mcCert == 'must-see' ? 'mcCert=1' : '')
+                } else if (posterType == 'poster-rt') {
+                    ratingString = imdbScore + '|' + rtScore + '|' + rtAudScore
+                    extras += (rtCert == 'certified-fresh' ? 'rtCert=1' : rtCert == 'spoiled' ? 'rtCert=-1' : '')
+                    extras += (extras ? '&' : '') + (rtAudCert == 'spilled' ? 'rtAudienceCert=-1' : '')
+                } else if (posterType == 'poster-mc') {
+                    ratingString = imdbScore + '|' + mcScore + '|' + mcAudScore
+                    extras += (mcCert == 'must-see' ? 'mcCert=1' : '')
+                } else {
+                    ratingString = '||'
+                }
+
+                if (tmdbUrl)
+                    extras += (extras ? '&' : '') + 'tmdbUrl=' + encodeURIComponent(tmdbUrl)
+
+                if (imdbUrl)
+                    extras += (extras ? '&' : '') + 'imdbUrl=' + encodeURIComponent(imdbUrl)
+
+                if (rtUrl)
+                    extras += (extras ? '&' : '') + 'rtUrl=' + encodeURIComponent(rtUrl)
+
+                if (mcUrl)
+                    extras += (extras ? '&' : '') + 'mcUrl=' + encodeURIComponent(mcUrl)
+
+                if (imgUrl)
+                    extras += (extras ? '&' : '') + 'img=' + encodeURIComponent(imgUrl)
+
+                extras += (extras ? '&' : '') + 'mediaType=' + searchFolderType
+
+                if (imgUrl) {
+
+                    $('#preview-create-poster-img').attr('src', '').attr('src', 'https://api.ratingposterdb.com/' + apiKey + '/'+editPosterSelectType+'/' + posterType + '/create-poster/' + searchFolderName + '.jpg?ratings=' + ratingString + (extras ? '&' + extras : ''))
+
+                } else {
+                    var tmdbType = searchFolderType == 'movie' ? searchFolderType : 'tv'
+                    $.get('https://api.themoviedb.org/3/find/'+searchFolderName+'?api_key='+tmdbKey+'&language=en-US&external_source=imdb_id', function(body) {
+                        if ((((body || {})[tmdbType + '_results'] || [])[0] || {}).id) {
+                            var tmdbPoster = body[tmdbType + '_results'][0].poster_path
+                            if (tmdbPoster) {
+                                tmdbPoster = 'https://www.themoviedb.org/t/p/w780' + tmdbPoster
+                                $('#preview-create-poster-img').attr('src', '').attr('src', 'https://api.ratingposterdb.com/' + apiKey + '/'+editPosterSelectType+'/' + posterType + '/create-poster/' + searchFolderName + '.jpg?ratings=' + ratingString + '&img=' + encodeURIComponent(tmdbPoster) + (extras ? '&' + extras : ''))
+
+                            }
+                        } else {
+                            $('#preview-create-poster-img').attr('src', '')
+                        }
+                    })
+                }
+
+                $('#preview-create-poster').show()
+            }
+            var createdPoster = false
+            function saveCreatePoster() {
+                var imgUrl = $('#create-poster-img-url').val()
+                var tmdbUrl = $('#create-poster-tmdb-url').val()
+                var imdbUrl = $('#create-poster-imdb-url').val()
+                var mcUrl = $('#create-poster-mc-url').val()
+                var rtUrl = $('#create-poster-rt-url').val()
+
+                var posterType = $('#create-poster-type').val()
+                var imdbScore = $('#create-'+posterType+'-imdb').val()
+                var rtScore = $('#create-'+posterType+'-rt').val()
+                var mcScore = $('#create-'+posterType+'-mc').val()
+                var rtAudScore = $('#create-'+posterType+'-rtaudience').val()
+                var mcAudScore = $('#create-'+posterType+'-mcaudience').val()
+                var rtCert = $('#create-'+posterType+'-rt-cert').val()
+                var mcCert = $('#create-'+posterType+'-mc-cert').val()
+                var rtAudCert = $('#create-'+posterType+'-rtaudience-cert').val()
+
+                var ratingString = ''
+
+                var extras = ''
+
+                if (posterType == 'poster-default') {
+                    ratingString = imdbScore + '|' + rtScore + '|' + mcScore
+                } else if (posterType == 'poster-certs') {
+                    ratingString = imdbScore + '|' + rtScore + '|' + mcScore
+                    extras += (rtCert == 'certified-fresh' ? 'rtCert=1' : rtCert == 'spoiled' ? 'rtCert=-1' : '')
+                    extras += (extras ? '&' : '') + (mcCert == 'must-see' ? 'mcCert=1' : '')
+                } else if (posterType == 'poster-rt') {
+                    ratingString = imdbScore + '|' + rtScore + '|' + rtAudScore
+                    extras += (rtCert == 'certified-fresh' ? 'rtCert=1' : rtCert == 'spoiled' ? 'rtCert=-1' : '')
+                    extras += (extras ? '&' : '') + (rtAudCert == 'spilled' ? 'rtAudienceCert=-1' : '')
+                } else if (posterType == 'poster-mc') {
+                    ratingString = imdbScore + '|' + mcScore + '|' + mcAudScore
+                    extras += (mcCert == 'must-see' ? 'mcCert=1' : '')
+                } else {
+                    ratingString = '||'
+                }
+
+                if (tmdbUrl)
+                    extras += (extras ? '&' : '') + 'tmdbUrl=' + encodeURIComponent(tmdbUrl)
+
+                if (imdbUrl)
+                    extras += (extras ? '&' : '') + 'imdbUrl=' + encodeURIComponent(imdbUrl)
+
+                if (rtUrl)
+                    extras += (extras ? '&' : '') + 'rtUrl=' + encodeURIComponent(rtUrl)
+
+                if (mcUrl)
+                    extras += (extras ? '&' : '') + 'mcUrl=' + encodeURIComponent(mcUrl)
+
+                if (imgUrl)
+                    extras += (extras ? '&' : '') + 'img=' + encodeURIComponent(imgUrl)
+
+                extras += (extras ? '&' : '') + 'mediaType=' + searchFolderType
+
+                if (imgUrl) {
+
+                    createdPoster = 'https://api.ratingposterdb.com/' + apiKey + '/'+editPosterSelectType+'/' + posterType + '/create-poster/' + searchFolderName + '.jpg?ratings=' + ratingString + (extras ? '&' + extras : '')
+
+                    cancelCreatePoster()
+                    openFolderPosterEdit(false, searchFolderName)
+
+                } else {
+                    var tmdbType = searchFolderType == 'movie' ? searchFolderType : 'tv'
+                    $.get('https://api.themoviedb.org/3/find/'+searchFolderName+'?api_key='+tmdbKey+'&language=en-US&external_source=imdb_id', function(body) {
+                        if ((((body || {})[tmdbType + '_results'] || [])[0] || {}).id) {
+                            var tmdbPoster = body[tmdbType + '_results'][0].poster_path
+                            if (tmdbPoster) {
+                                tmdbPoster = 'https://www.themoviedb.org/t/p/w780' + tmdbPoster
+                                createdPoster = 'https://api.ratingposterdb.com/' + apiKey + '/'+editPosterSelectType+'/' + posterType + '/create-poster/' + searchFolderName + '.jpg?ratings=' + ratingString + '&img=' + encodeURIComponent(tmdbPoster) + (extras ? '&' + extras : '')
+
+                            }
+                        }
+                        cancelCreatePoster()
+                        openFolderPosterEdit(false, searchFolderName)
+                    })
+                }
+            }
+            function submitCreatePoster() {
+                var imgUrl = $('#create-poster-img-url').val()
+                var tmdbUrl = $('#create-poster-tmdb-url').val()
+                var imdbUrl = $('#create-poster-imdb-url').val()
+                var mcUrl = $('#create-poster-mc-url').val()
+                var rtUrl = $('#create-poster-rt-url').val()
+
+                var posterType = $('#create-poster-type').val()
+                var imdbScore = $('#create-'+posterType+'-imdb').val()
+                var rtScore = $('#create-'+posterType+'-rt').val()
+                var mcScore = $('#create-'+posterType+'-mc').val()
+                var rtAudScore = $('#create-'+posterType+'-rtaudience').val()
+                var mcAudScore = $('#create-'+posterType+'-mcaudience').val()
+                var rtCert = $('#create-'+posterType+'-rt-cert').val()
+                var mcCert = $('#create-'+posterType+'-mc-cert').val()
+                var rtAudCert = $('#create-'+posterType+'-rtaudience-cert').val()
+
+                var queryObj = {}
+
+                var ratingString = ''
+
+                var extras = ''
+
+                if (posterType == 'poster-default') {
+                    queryObj.ratings = imdbScore + '|' + rtScore + '|' + mcScore
+                } else if (posterType == 'poster-certs') {
+                    queryObj.ratings = imdbScore + '|' + rtScore + '|' + mcScore
+                    if (rtCert == 'certified-fresh') {
+                        queryObj.rtCert = 1
+                    } else if (rtCert == 'spoiled') {
+                        queryObj.rtCert = -1
+                    }
+                    if (mcCert == 'must-see') {
+                        queryObj.mcCert = 1
+                    }
+                } else if (posterType == 'poster-rt') {
+                    queryObj.ratings = imdbScore + '|' + rtScore + '|' + mcScore
+                    if (rtCert == 'certified-fresh') {
+                        queryObj.rtCert = 1
+                    } else if (rtCert == 'spoiled') {
+                        queryObj.rtCert = -1
+                    }
+                    if (rtAudCert == 'spilled') {
+                        queryObj.rtAudienceCert = -1
+                    }
+                } else if (posterType == 'poster-mc') {
+                    queryObj.ratings = imdbScore + '|' + rtScore + '|' + mcScore
+                    if (mcCert == 'must-see') {
+                        queryObj.mcCert = 1
+                    }
+                } else {
+                    queryObj.ratings = '||'
+                }
+
+                if (tmdbUrl)
+                    queryObj.tmdbUrl = tmdbUrl
+
+                if (imdbUrl) {
+                    queryObj.imdbUrl = imdbUrl
+                    var tempName = imdbUrl
+                    if (tempName.startsWith('https://www.imdb.com/title/')) {
+                        tempName = tempName.replace('https://www.imdb.com/title/','')
+                        if (tempName.startsWith('tt') && tempName.includes('/')) {
+                            tempName = tempName.substr(0, tempName.indexOf('/'))
+                        }
+                    }
+                    if (tempName.startsWith('tt') && !isNaN(tempName.replace('tt',''))) {
+                        imdbId = tempName
+                        if (imdbId && imdbId.length > 7) {
+                            if (!queryObj.imdb)
+                                queryObj.imdb = imdbId
+                            if (!queryObj.imdbUrl)
+                                queryObj.imdbUrl = 'https://www.imdb.com/title/' + imdbId + '/'
+                        }
+                    }
+                }
+
+                if (rtUrl)
+                    queryObj.rtUrl = rtUrl
+
+                if (mcUrl)
+                    queryObj.mcUrl = mcUrl
+
+                if (imgUrl)
+                    queryObj.img = imgUrl
+
+                queryObj.mediaType = searchFolderType
+
+                if (imgUrl) {
+
+                    var submitStr = JSON.stringify(queryObj)
+                    var submitData = window.btoa(submitStr)
+                    var submitUrl = 'https://api.ratingposterdb.com/' + apiKey + '/submit?imageType=' + posterType + '&data=' + encodeURIComponent(submitData)
+                    $.get(submitUrl, function() {})
+                    $('#submit-poster-success').show()
+                } else {
+                    var tmdbType = searchFolderType == 'movie' ? searchFolderType : 'tv'
+                    $.get('https://api.themoviedb.org/3/find/'+searchFolderName+'?api_key='+tmdbKey+'&language=en-US&external_source=imdb_id', function(body) {
+                        if ((((body || {})[tmdbType + '_results'] || [])[0] || {}).id) {
+                            var tmdbPoster = body[tmdbType + '_results'][0].poster_path
+                            if (tmdbPoster) {
+                                tmdbPoster = 'https://www.themoviedb.org/t/p/w780' + tmdbPoster
+                                queryObj.img = tmdbPoster
+                                var submitStr = JSON.stringify(queryObj)
+                                var submitData = window.btoa(submitStr)
+                                var submitUrl = 'https://api.ratingposterdb.com/' + apiKey + '/submit?imageType=' + posterType + '&data=' + encodeURIComponent(submitData)
+                                $.get(submitUrl, function() {})
+                            }
+                        }
+                        $('#submit-poster-success').show()
+                    })
+                }
+            }
+            function closePreviewCreatePoster() {
+                $('#preview-create-poster').hide()
+                $('#preview-create-poster-img').attr('src', '')
+            }
+            function cancelCreatePoster() {
+                $('#create-poster').hide()
+            }
+            var specificFolder = ''
+            var specificFolderMovie = false
+            function attachRemoveFolderClickListeners() {
+                $(".edit-line").click(function(e) {
+                    e.preventDefault()
+                    specificFolder = $(this).text().trim()
+                    if ($(this).hasClass('movie-line')) {
+                        specificFolderMovie = true
+                    } else {
+                        specificFolderMovie = false
+                    }
+                    openEditSpecificFolder()
+                })
+            }
+            function capitalizeFirstLetter(string) {
+              return string.charAt(0).toUpperCase() + string.slice(1);
+            }
+            function openChooseFolderTypes(type) {
+                searchFolderType = type
+                $('#choose-folder-types').find('h1.dialog-title').text('How would you like to select the ' + type + ' poster?')
+                $('#choose-folder-types').show()
+            }
+            function closeChooseFolderTypes() {
+                $('#choose-folder-types').hide()
+            }
+            var searchBackdropType = false
+            function openChooseBackdropTypes(type) {
+                searchBackdropType = type
+                $('#choose-backdrop-types').find('h1.dialog-title').text('How would you like to select the ' + type + ' backdrop?')
+                $('#choose-backdrop-types').show()
+            }
+            function closeChooseBackdropTypes() {
+                $('#choose-backdrop-types').hide()
+            }
+            function openSearchFolderEdit() {
+                console.log('type: ' + searchFolderType)
+                openPosterEdit(searchFolderType)
+                setTimeout(function() { closeChooseFolderTypes() })
+            }
+            function openChooseFolderByImdb() {
+                $('#choose-imdb-url').val('')
+                $('.choose-imdb-error-message').text('')
+                $('.choose-imdb-error-message').hide()
+                $('#choose-folder-by-imdb').find('h1.dialog-title').text('Choose ' + capitalizeFirstLetter(searchFolderType) + ' Poster by IMDB ID')
+                $('#choose-folder-by-imdb').show()
+                $('#choose-imdb-url').select()
+                closeChooseFolderTypes()
+            }
+            function closeChooseFolderByImdb() {
+                $('#choose-imdb-url').val('')
+                $('.choose-imdb-error-message').text('')
+                $('.choose-imdb-error-message').hide()
+                $('#choose-folder-by-imdb').hide()
+            }
+            function openChooseFolderByTmdb() {
+                $('#choose-tmdb-url').val('')
+                $('.choose-tmdb-error-message').text('')
+                $('.choose-tmdb-error-message').hide()
+                $('#choose-folder-by-tmdb').find('h1.dialog-title').text('Choose ' + capitalizeFirstLetter(searchFolderType) + ' Poster by TMDB ID')
+                $('#choose-folder-by-tmdb').show()
+                $('#choose-tmdb-url').select()
+                closeChooseFolderTypes()
+            }
+            function closeChooseFolderByTmdb() {
+                $('#choose-tmdb-url').val('')
+                $('.choose-tmdb-error-message').text('')
+                $('.choose-tmdb-error-message').hide()
+                $('#choose-folder-by-tmdb').hide()
+            }
+            function openChooseBackdropByImdb() {
+                $('#choose-imdb-backdrop-url').val('')
+                $('.choose-imdb-backdrop-error-message').text('')
+                $('.choose-imdb-backdrop-error-message').hide()
+                $('.show-imdb-backdrop').hide()
+                $('#choose-backdrop-by-imdb').find('h1.dialog-title').text('Choose ' + capitalizeFirstLetter(searchFolderType) + ' Backdrop by IMDB ID')
+                $('#choose-backdrop-by-imdb').show()
+                $('#choose-imdb-backdrop-url').select()
+                closeChooseBackdropTypes()
+            }
+            function closeChooseBackdropByImdb() {
+                $('#choose-imdb-backdrop-url').val('')
+                $('.choose-imdb-backdrop-error-message').text('')
+                $('.choose-imdb-backdrop-error-message').hide()
+                $('#choose-backdrop-by-imdb').hide()
+            }
+            function openChooseBackdropByTmdb() {
+                $('#choose-tmdb-backdrop-url').val('')
+                $('.choose-tmdb-backdrop-error-message').text('')
+                $('.choose-tmdb-backdrop-error-message').hide()
+                $('.show-tmdb-backdrop').hide()
+                $('#choose-backdrop-by-tmdb').find('h1.dialog-title').text('Choose ' + capitalizeFirstLetter(searchFolderType) + ' Backdrop by TMDB ID')
+                $('#choose-backdrop-by-tmdb').show()
+                $('#choose-tmdb-backdrop-url').select()
+                closeChooseBackdropTypes()
+            }
+            function closeChooseBackdropByTmdb() {
+                $('#choose-tmdb-backdrop-url').val('')
+                $('.choose-tmdb-backdrop-error-message').text('')
+                $('.choose-tmdb-backdrop-error-message').hide()
+                $('#choose-backdrop-by-tmdb').hide()
+            }
+            function openMoviePosterEdit() { openPosterEdit('movie') }
+            function openSeriesPosterEdit() { openPosterEdit('series') }
+            var currentSettings = {}
+            function getSettingsByType() {
+                return {
+                    textless: settings[searchFolderType + 'Textless'],
+                    posterType: settings[searchFolderType + 'PosterType'],
+                    posterLang: settings[searchFolderType + 'PosterLang'],
+                }
+            }
+            function getQueryString(tempBadgeString, createdPoster) {
+                currentSettings = getSettingsByType()
+
+                var queryString = ''
+
+                if (tempBadgeString || badgeQueryString)
+                    queryString += tempBadgeString || badgeQueryString
+
+                if (currentSettings.posterLang != 'en' && !createdPoster)
+                    queryString += (badgeQueryString ? '&' : '?') + 'lang=' + currentSettings.posterLang
+
+                if (customPosterUrl) {
+                    if (!createdPoster) {
+                        queryString += (badgeQueryString ? '&' : '?') + 'img=' + encodeURIComponent(customPosterUrl)
+                    } else {
+                        createdPoster = createdPoster.replace(/(img=)[^\&]+/, '$1' + encodeURIComponent(customPosterUrl))
+                    }
+                }
+
+                if (queryString && createdPoster)
+                    queryString = '&' + queryString.substr(1)
+
+                if (!createdPoster) {
+                    let ratingOrder = settings[searchFolderType + 'RatingOrder']
+
+                    if (settings[searchFolderType + 'PosterType'] == 'rating-order' && ratingOrder && typeof ratingOrder === 'string')
+                        queryString += (queryString ? '&' : '?') + 'order=' + encodeURIComponent(ratingOrder)
+                }
+
+                return (createdPoster || '') + queryString
+            }
+            function getImageUrl(tempBadgeString) {
+                if (createdPoster) {
+                    return getQueryString(tempBadgeString, createdPoster)
+                } else {
+                    currentSettings = getSettingsByType()
+                    var posterType = currentSettings.posterType
+                    if (currentSettings.textless && !tmdbPosterPath && !customPosterUrl)
+                        posterType = posterType.replace('poster-', 'textless-')
+                    return 'https://api.ratingposterdb.com/'+apiKey+'/'+editPosterSelectType+'/'+posterType+'/'+(customPosterUrl ? 'custom-poster/' : tmdbPosterPath ? 'tmdb-poster/' : '')+(tmdbPosterPath && !customPosterUrl ? searchFolderName + '/' + tmdbPosterPath : searchFolderName + '.jpg')+getQueryString(tempBadgeString)
+                }
+            }
+            var editPosterSelectType = false
+            function editPosterByImdb() {
+                editPosterSelectType = 'imdb'
+                var tempName = $('#choose-imdb-url').val()
+                if (tempName.startsWith('https://www.imdb.com/title/')) {
+                    tempName = tempName.replace('https://www.imdb.com/title/','')
+                    if (tempName.startsWith('tt') && tempName.includes('/')) {
+                        tempName = tempName.substr(0, tempName.indexOf('/'))
+                    }
+                }
+                if (tempName && tempName.startsWith('tt') && !isNaN(tempName.replace('tt',''))) {
+                    searchFolderName = tempName
+                    $('#folder-poster-edit').find('h1.dialog-title').text(searchFolderName)
+                    $('#folder-poster-edit-img').attr('src','');
+                    $('#download-poster-button').attr('download', searchFolderName)
+                    setTimeout(() => {
+                        var newPosterUrl = getImageUrl()
+                        $('#folder-poster-edit-img').attr('src', newPosterUrl)
+                        $('#download-poster-button').attr('href', newPosterUrl)
+                    })
+                    createdPoster = false
+                    badgeQueryString = false
+                    customPosterUrl = false
+                    tmdbPosterPath = false
+                    $('#folder-poster-edit').show()
+                    closeChooseFolderByImdb()
+                } else {
+                    $('.choose-imdb-error-message').text('Invalid IMDB URL or IMDB ID')
+                    $('.choose-imdb-error-message').show()
+                }
+                return false
+            }
+            function editPosterByTmdb() {
+                editPosterSelectType = 'imdb'
+                var tmdbType = searchFolderType == 'movie' ? searchFolderType : 'tv'
+                var tempName = $('#choose-tmdb-url').val()
+                if (tempName.startsWith('https://www.themoviedb.org/' + tmdbType + '/')) {
+                    tempName = tempName.replace('https://www.themoviedb.org/' + tmdbType + '/','')
+                    if (tempName.includes('-')) {
+                        tempName = tempName.substr(0, tempName.indexOf('-'))
+                    }
+                }
+                if (tempName && !isNaN(tempName)) {
+                    var tmdbId = tempName
+                    $.get('https://api.themoviedb.org/3/' + tmdbType + '/' + tmdbId + '?api_key=' + tmdbKey + '&append_to_response=external_ids', function(body) {
+                        if (((body || {}).external_ids || {}).imdb_id) {
+                            searchFolderName = body.external_ids.imdb_id
+                            $('#folder-poster-edit').find('h1.dialog-title').text(searchFolderName)
+                            $('#folder-poster-edit-img').attr('src','');
+                            $('#download-poster-button').attr('download', searchFolderName)
+                            setTimeout(() => {
+                                var newPosterUrl = getImageUrl()
+                                $('#folder-poster-edit-img').attr('src', newPosterUrl)
+                                $('#download-poster-button').attr('href', newPosterUrl)
+                            })
+                            createdPoster = false
+                            badgeQueryString = false
+                            customPosterUrl = false
+                            tmdbPosterPath = false
+                            $('#folder-poster-edit').show()
+                            closeChooseFolderByTmdb()
+                        } else {
+                            $('.choose-tmdb-error-message').text('Could not match TMDB ID to valid IMDB ID')
+                            $('.choose-tmdb-error-message').show()
+
+                        }
+                    })
+                } else {
+                    $('.choose-tmdb-error-message').text('Invalid TMDB URL or TMDB ID')
+                    $('.choose-tmdb-error-message').show()
+                }
+                return false
+            }
+            function editBackdropByImdb() {
+                var tempName = $('#choose-imdb-backdrop-url').val()
+                if (tempName.startsWith('https://www.imdb.com/title/')) {
+                    tempName = tempName.replace('https://www.imdb.com/title/','')
+                    if (tempName.startsWith('tt') && tempName.includes('/')) {
+                        tempName = tempName.substr(0, tempName.indexOf('/'))
+                    }
+                }
+                if (tempName && tempName.startsWith('tt') && !isNaN(tempName.replace('tt',''))) {
+                    var backdropUrl = 'https://api.ratingposterdb.com/'+apiKey+'/imdb/backdrop-default/'+tempName+'.jpg'
+                    $.get(backdropUrl, function() {}).done(function() {
+                        $('.choose-imdb-backdrop-error-message').hide()
+                        $('.show-imdb-backdrop').html('<b>Selected backdrop for '+tempName+'</b><br/><br/><a href="'+backdropUrl+'" target="_blank" download="'+tempName+'"><button type="button" class="pure-button pure-button-primary">Download Backdrop</button></a>')
+                        $('.show-imdb-backdrop').show()
+                        $('#choose-imdb-backdrop-url').val('')
+                    }).fail(function() {
+                        $('.show-imdb-backdrop').hide()
+                        $('.choose-imdb-backdrop-error-message').text('Backdrop unavailable for ' + tempName)
+                        $('.choose-imdb-backdrop-error-message').show()
+                    })
+                } else {
+                    $('.show-imdb-backdrop').hide()
+                    $('.choose-imdb-backdrop-error-message').text('Invalid IMDB URL or IMDB ID')
+                    $('.choose-imdb-backdrop-error-message').show()
+                }
+                return false
+            }
+            function editBackdropByTmdb() {
+                var tmdbType = searchBackdropType == 'movie' ? searchFolderType : 'tv'
+                var tempName = $('#choose-tmdb-backdrop-url').val()
+                if (tempName.startsWith('https://www.themoviedb.org/' + tmdbType + '/')) {
+                    tempName = tempName.replace('https://www.themoviedb.org/' + tmdbType + '/','')
+                    if (tempName.includes('-')) {
+                        tempName = tempName.substr(0, tempName.indexOf('-'))
+                    }
+                }
+                if (tempName && !isNaN(tempName)) {
+                    var tmdbId = tempName
+                    $.get('https://api.themoviedb.org/3/' + tmdbType + '/' + tmdbId + '?api_key=' + tmdbKey + '&append_to_response=external_ids', function(body) {
+                        if (((body || {}).external_ids || {}).imdb_id) {
+                            imdbName = body.external_ids.imdb_id
+                            var backdropUrl = 'https://api.ratingposterdb.com/'+apiKey+'/imdb/backdrop-default/'+imdbName+'.jpg'
+                            $.get(backdropUrl, function() {}).done(function() {
+                                $('.choose-tmdb-backdrop-error-message').hide()
+                                $('.show-tmdb-backdrop').html('<b>Selected backdrop for '+imdbName+'</b><br/><br/><a href="'+backdropUrl+'" target="_blank" download="'+imdbName+'"><button type="button" class="pure-button pure-button-primary">Download Backdrop</button></a>')
+                                $('.show-tmdb-backdrop').show()
+                                $('#choose-tmdb-backdrop-url').val('')
+                            }).fail(function() {
+                                $('.show-tmdb-backdrop').hide()
+                                $('.choose-tmdb-backdrop-error-message').text('Backdrop unavailable for ' + imdbName)
+                                $('.choose-tmdb-backdrop-error-message').show()
+                            })
+                        } else {
+                            $('.show-tmdb-backdrop').hide()
+                            $('.choose-tmdb-backdrop-error-message').text('Could not match TMDB ID to valid IMDB ID')
+                            $('.choose-tmdb-backdrop-error-message').show()
+
+                        }
+                    })
+                } else {
+                    $('.show-tmdb-backdrop').hide()
+                    $('.choose-tmdb-backdrop-error-message').text('Invalid TMDB URL or TMDB ID')
+                    $('.choose-tmdb-backdrop-error-message').show()
+                }
+                return false
+            }
+            function openFolderPosterEdit(ij, srcFolderName, noReloadImg) {
+                $('#update-ratings-poster-msg').hide()
+                searchFolderName = srcFolderName || $($('.add-search-line')[ij]).text()
+                $('#update-ratings-poster-msg').hide()
+                $('.search-list').html('')
+                searchStrings = {}
+                $('#folder-poster-edit').find('h1.dialog-title').text(searchFolderName)
+                if (!noReloadImg) {
+                    currentSettings = getSettingsByType()
+                    $('#folder-poster-edit-img').attr('src','');
+                    setTimeout(() => {
+                        var newPosterUrl = getImageUrl()
+                        $('#folder-poster-edit-img').attr('src', newPosterUrl)
+                        $('#download-poster-button').attr('href', newPosterUrl)
+                    })
+                }
+                $('#folder-poster-edit').show()
+            }
+            function closeFolderPosterEdit() {
+                $('#folder-poster-edit').hide()
+            }
+            function backToSearch() {
+                if (editPosterSelectType == 'search')
+                    openPosterEdit(searchFolderType)
+                else if (editPosterSelectType == 'imdb')
+                    openChooseFolderByImdb()
+                setTimeout(() => {
+                    $('#folder-poster-edit').hide()
+                }, 100)
+            }
+            var choosePosterData = {}
+            function loadPostersForLang() {
+                var tmdbPrefix = 'https://www.themoviedb.org/t/p/w342'
+                var langChoice = $('#choose-poster-lang').children("option:selected").val()
+                var langPosters = (langChoice == 'none' ? choosePosterData.items : choosePosterData.items.filter(function(item) { return item.lang == langChoice })).slice(0, 25).map(function(el) { return tmdbPrefix + el.file_path })
+                $('#poster-choices').html('')
+                langPosters.forEach(function(el, ij) {
+                    $('#poster-choices').append('<img src="' + el + '" class="poster-choice-img" onclick="useThisPoster('+ij+')">')
+                })
+            }
+            var tmdbPosterPath = ''
+            function useThisPoster(ij) {
+                var thisPoster = $($('.poster-choice-img')[ij]).attr('src').split('/').pop()
+                if (thisPoster)
+                    tmdbPosterPath = thisPoster
+                openFolderPosterEdit(false, searchFolderName)
+                $('#poster-choices').html('')
+                $('#choose-poster').hide()
+            }
+            function getPosterChoices(cb) {
+                var tmdbType = searchFolderType == 'movie' ? searchFolderType : 'tv'
+                $.get('https://api.themoviedb.org/3/find/'+searchFolderName+'?api_key='+tmdbKey+'&language=en-US&external_source=imdb_id', function(body) {
+                    if ((((body || {})[tmdbType + '_results'] || [])[0] || {}).id) {
+                        const tmdbId = body[tmdbType + '_results'][0].id
+                        $.get('https://api.themoviedb.org/3/'+tmdbType+'/'+tmdbId+'/images?api_key='+tmdbKey, function(body) {
+                            if (((body || {}).posters || []).length) {
+                                cb({ items: body.posters.map(el => { return { file_path: el.file_path, lang: el['iso_639_1'] } }) })
+                            } else {
+                                cb()
+                            }
+                        })
+                    } else {
+                        cb()
+                    }
+                })
+            }
+            function openChoosePoster() {
+                $('#choose-poster').find('h1.dialog-title').text(searchFolderName)
+                $('#choose-poster').show()
+                $('#folder-poster-edit').hide()
+                getPosterChoices(function(data) {
+                    if (((data || {}).items || []).length) {
+                        choosePosterData = data
+                        $('#choose-poster-lang').empty()
+                        $('#choose-poster-lang').append(new Option('None', 'none'))
+
+                        var langs = data.items.map(function(el) { return el.lang })
+                        langs = langs.filter(function(item, pos) { return item && langs.indexOf(item) == pos })
+                        langs.forEach(function(el) {
+                            $('#choose-poster-lang').append(new Option(el, el))
+                        })
+                    } else {
+                        choosePosterData = { items: [] }
+                    }
+                })
+            }
+            function closeChoosePoster() {
+                openFolderPosterEdit(false, searchFolderName, true)
+                $('#choose-poster').hide()
+            }
+            function openCustomPoster() {
+                $('#custom-poster-input').val('')
+                $('#custom-poster').find('h1.dialog-title').text(searchFolderName)
+                $('#custom-poster').show()
+                $('#folder-poster-edit').hide()
+            }
+            var customPosterUrl = false
+            function loadCustomPoster() {
+                var thisPoster = $('#custom-poster-input').val()
+                if (thisPoster)
+                    customPosterUrl = thisPoster
+                openFolderPosterEdit(false, searchFolderName)
+                $('#custom-poster-input').val('')
+                $('#custom-poster').hide()
+            }
+            function closeCustomPoster() {
+                openFolderPosterEdit(false, searchFolderName, true)
+                $('#custom-poster').hide()
+            }
+            function openCheckRequests() {
+                $.get('https://api.ratingposterdb.com/' + apiKey + '/requests?break=' + Date.now(), function(body) {
+                    if ((body || {}).limit) {
+                        $('#request-count').text('Requests: ' + body.req + ' / Limit: ' + body.limit)
+                        $('#check-requests').show()
+                    }
+                })
+            }
+            function closeCheckRequests() {
+                $('#check-requests').hide()
+                $('#request-count').text('')
+            }
+            function openAddBadges() {
+                $('#badge-position').val($('#badge-position option:first').val())
+                $('#video-quality-badges').val($('#video-quality-badges option:first').val())
+                $('#3d-badges').val($('#3d-badges option:first').val())
+                $('#hdr-badges').val($('#hdr-badges option:first').val())
+                $('#remux-badges').val($('#remux-badges option:first').val())
+                $('#codec-badges').val($('#codec-badges option:first').val())
+                $('#container-badges').val($('#container-badges option:first').val())
+                $('#audio-types').val($('#audio-types option:first').val())
+                $('#pr-types').val($('#pr-types option:first').val())
+                Array.from(document.getElementById('audio-types').options).forEach(el => {
+                    if (el.value != 'none-audio') {
+                        $('#' + el.value).hide()
+                        $('#' + el.value + ' select').val($('#' + el.value + ' select option:first').val())
+                    }
+                })
+                $('#label-text').val('')
+                $('#badge-or-label').val($('#badge-or-label option:first').val())
+                $('#choose-label-view').hide()
+                $('#choose-badge-view').show()
+                $('#choose-badge-settings').show()
+            }
+
+            function openPreviewPoster() {
+                var tempBadgeString = ''
+                var queryString = ''
+                if ($('#label-text').val()) {
+                    queryString = '?label=' + encodeURIComponent($('#label-text').val())
+                } else {
+                    var badgePos = $('#badge-position').val()
+                    var badgeData = [
+                        $('#video-quality-badges').val(),
+                        $('#3d-badges').val(),
+                        $('#hdr-badges').val(),
+                        $('#remux-badges').val(),
+                        $('#codec-badges').val(),
+                        $('#container-badges').val(),
+                    ].filter(function(el) { return el !== 'none' })
+
+                    var audioBadge = false
+                    Array.from(document.getElementById('audio-types').options).forEach(el => {
+                        if (el.value != 'none-audio') {
+                            if ($('#' + el.value + ' select').val() !== 'none') {
+                                audioBadge = $('#' + el.value + ' select').val()
+                            }
+                        }
+                    })
+
+                    if (audioBadge)
+                        badgeData.push(audioBadge)
+
+                    if ($('#pr-types').val() != 'none')
+                        badgeData.push($('#pr-types').val())
+
+                    if (badgeData.length) {
+                        tempBadgeString = badgeData.join(',')
+                        queryString = '?badges=' + encodeURIComponent(tempBadgeString)
+                        if (badgePos && badgePos != 'left')
+                            queryString += '&badgePos=' + badgePos
+                    }
+
+                }
+
+                currentSettings = getSettingsByType()
+
+                if (currentSettings.posterLang != 'en')
+                    queryString += (queryString ? '?' : '&') + 'lang=' + currentSettings.posterLang
+
+                $('#preview-poster-img').attr('src', getImageUrl(queryString))
+
+                $('#preview-poster').show()
+            }
+
+            function closePreviewPoster() {
+                $('#preview-poster-img').attr('src', '')
+                $('#preview-poster').hide()
+            }
+
+            var badgeQueryString
+
+            function cancelAddBadges() {
+                $('#choose-badge-settings').hide()
+            }
+
+            function saveAddBadges() {
+                if ($('#label-text').val()) {
+                    badgeQueryString = '?label=' + encodeURIComponent($('#label-text').val())
+                } else {
+
+                    var badgePos = $('#badge-position').val()
+                    var badgeData = [
+                        $('#video-quality-badges').val(),
+                        $('#3d-badges').val(),
+                        $('#hdr-badges').val(),
+                        $('#remux-badges').val(),
+                        $('#codec-badges').val(),
+                        $('#container-badges').val(),
+                    ].filter(function(el) { return el !== 'none' })
+                    var audioBadge = false
+                    Array.from(document.getElementById('audio-types').options).forEach(el => {
+                        if (el.value != 'none-audio') {
+                            if ($('#' + el.value + ' select').val() !== 'none') {
+                                audioBadge = $('#' + el.value + ' select').val()
+                            }
+                        }
+                    })
+
+                    if (audioBadge)
+                        badgeData.push(audioBadge)
+
+                    if ($('#pr-types').val() != 'none')
+                        badgeData.push($('#pr-types').val())
+
+                    if (badgeData.length) {
+                        badgeQueryString = '?badges=' + encodeURIComponent(badgeData.join(','))
+                        if (badgePos && badgePos != 'left')
+                            badgeQueryString += '&badgePos=' + badgePos
+                    }
+
+                }
+                if ($("#folder-poster-edit").is(":visible") && searchFolderName && searchFolderType && badgeQueryString) {
+                    $('#folder-poster-edit-img').attr('src','');
+                    setTimeout(() => {
+                        var newPosterUrl = getImageUrl()
+                        $('#folder-poster-edit-img').attr('src', newPosterUrl)
+                        $('#download-poster-button').attr('href', newPosterUrl)
+                    })
+                }
+
+                $('#choose-badge-settings').hide()
+            }
+
+            function openPosterSettings() {
+                $('#poster-settings').show()
+            }
+
+            function closePosterSettings() {
+                $('#poster-settings').hide()
+            }
+
+            function openTier3onlyMessage() {
+                $('#tier-3-only-message').show()
+            }
+
+            function closeTier3onlyMessage() {
+                $('#tier-3-only-message').hide()
+            }
+        </script>
+    </body>
+</html>
