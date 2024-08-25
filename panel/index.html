@@ -1733,6 +1733,10 @@
                 }
             }
             function set_api_key() {
+                if ($('#api-key').val() === 't0-free-rpdb') {
+                    alert('Free API Key does not have access to the web panel, consider purchasing a RPDB Tier from Patreon.')
+                    return false
+                }
                 apiKey = $('#api-key').val()
                 load_api_key()
                 return false
